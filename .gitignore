@@ -1,5 +1,12 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+# TK start
+*~
+*.pl
+Files.lis
+Files.db
+versionTarBall*
+# TK end
 *.py[cod]
 *$py.class
 
@@ -14,7 +21,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+#lib/
 lib64/
 parts/
 sdist/
