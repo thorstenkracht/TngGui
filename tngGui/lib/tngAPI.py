@@ -1444,11 +1444,12 @@ class deviceCommands( QtGui.QMainWindow):
             
         
 class timerWidget( QtGui.QMainWindow):
-    def __init__( self, logWidget, parent = None):
+    def __init__( self, logWidget, allTimers, parent = None):
         super( timerWidget, self).__init__( parent)
         self.parent = parent
         self.setWindowTitle( "Timers")
         self.logWidget = logWidget
+        self.allTimers = allTimers
         w = QtGui.QWidget()
         self.layout_v = QtGui.QVBoxLayout()
         w.setLayout( self.layout_v)
@@ -1464,7 +1465,7 @@ class timerWidget( QtGui.QMainWindow):
         layout_grid.addWidget( QtGui.QLabel( 'Module'), count, 3)
         layout_grid.addWidget( QtGui.QLabel( 'DeviceName'), count, 4)
 
-        for dev in allTimers: 
+        for dev in self.allTimers: 
             count += 1
             dev[ 'w_aliasName2'] = QtGui.QLabel( dev[ 'name']) # '2' to avoid conflicts with the main table widgets
             layout_grid.addWidget( dev[ 'w_aliasName2'], count, 0)
@@ -1590,7 +1591,7 @@ class timerWidget( QtGui.QMainWindow):
             self.activityIndex = 0
         self.activity.setTitle( definitions.ACTIVITY_SYMBOLS[ self.activityIndex])
         
-        for dev in allTimers:
+        for dev in self.allTimers:
             if dev[ 'proxy'].state() == PyTango.DevState.MOVING:
                 dev[ 'w_aliasName2'].setStyleSheet( "background-color:%s;" % definitions.BLUE_MOVING)
                 dev[ 'w_startStop2'].setText( "Stop")

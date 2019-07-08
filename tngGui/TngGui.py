@@ -281,13 +281,8 @@ class motorMenu( QtGui.QMainWindow):
         self.activity = self.menuBarActivity.addMenu( "_")
 
     def cb_launchTimer( self): 
-        global w_timer
-        if w_timer:
-            w_timer.close()
-            del w_timer
-            w_timer = None
-        w_timer = timerWidget( self.logWidget, self)
-        w_timer.show()
+        self.w_timer = tngAPI.timerWidget( self.logWidget, allTimers, self)
+        self.w_timer.show()
 
     def cb_motorTable( self):
         self.fillMotorList()
