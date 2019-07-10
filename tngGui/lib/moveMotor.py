@@ -5,6 +5,7 @@ import PyTango
 import math, time, sys, os
 import definitions, utils, HasyUtils, Spectra
 import tngAPI, cursorGui
+import graphics
 
 class SelectMotor( QtGui.QMainWindow):
     def __init__( self, parent = None):
@@ -53,6 +54,7 @@ class moveMotor( QtGui.QMainWindow):
         self.dev = dev
         self.allDevices = allDevices
         self.logWidget = logWidget
+        self.scan = None
 
         self.setWindowTitle( "Move %s" % dev[ 'name'])
         self.move( 10, 750)
@@ -62,7 +64,6 @@ class moveMotor( QtGui.QMainWindow):
         #
         self.flagDisplaySignal = True
         self.prepareWidgets()
-
         self.timerName = timerName
         self.counterName = counterName
         self.timer = None
@@ -501,11 +502,11 @@ class moveMotor( QtGui.QMainWindow):
 
         self.fileMenu = self.menuBar.addMenu('&File')
 
-        self.spectraAction = QtGui.QAction('&Spectra', self)        
-        self.spectraAction.setStatusTip('Spectra')
-        self.spectraAction.triggered.connect( self.cb_launchSpectra)
-        self.spectraAction.setShortcut( "Alt+s")
-        self.fileMenu.addAction( self.spectraAction)
+        #self.spectraAction = QtGui.QAction('&Spectra', self)        
+        #self.spectraAction.setStatusTip('Spectra')
+        #self.spectraAction.triggered.connect( self.cb_launchSpectra)
+        #self.spectraAction.setShortcut( "Alt+s")
+        #self.fileMenu.addAction( self.spectraAction)
 
         self.writeFileAction = QtGui.QAction('Write .fio file', self)        
         self.writeFileAction.triggered.connect( self.cb_writeFile)
@@ -596,8 +597,8 @@ class moveMotor( QtGui.QMainWindow):
         self.lastX = -1.0e35
         self.sliderPosition = None
         self.updateWidgets()
-        if hasattr( self, "scan"): 
-            del self.scan
+        if self.scan is not None:
+            self.deleteScan()
         if self.cursorIsActive:
             self.cursorGUI.close()
         self.signalChanged() # needs self.signalMaxString
@@ -646,9 +647,8 @@ Btw: Key_Up/Down change the slew rate. <br>"
     def cb_flagDisplaySignalChanged( self):
         self.flagDisplaySignal = self.w_signalCheckBox.isChecked()
         if not self.flagDisplaySignal:
-            if hasattr( self, 'scan'):
-                del self.scan
-                Spectra.gra_command( "cls/graphic")
+            if self.scan is None:
+                self.deleteScan()
             self.signalMax = -1e35
             signalMaxX = None
 
@@ -775,12 +775,12 @@ Btw: Key_Up/Down change the slew rate. <br>"
             self.counter = None
             return
 
-        if hasattr( self, "scan"): 
-            del self.scan
-            Spectra.gra_command( "cls/graphic")
+        if self.scan is not None:
+            self.deleteScan()
 
     def cb_writeFile( self):
-        Spectra.gra_command( "write/fio %s" % self.nameGQE)
+        #Spectra.gra_command( "write/fio %s" % self.nameGQE)
+        graphics.writeFile( self.nameGQE)
         self.logWidget.append( "write/nocon/fio %s" % self.nameGQE)
 
     def cb_postscript(self):
@@ -792,7 +792,8 @@ Btw: Key_Up/Down change the slew rate. <br>"
             QtGui.QMessageBox.about(self, 'Info Box', "No shell environment variable PRINTER.") 
             return
 
-        Spectra.gra_command(" postscript/redisplay/nolog/nocon/print/lp=%s" % prnt)
+        graphics.createHardCopy( prnt)
+        #Spectra.gra_command(" postscript/redisplay/nolog/nocon/print/lp=%s" % prnt)
         self.logWidget.append( HasyUtils.getDateTime())
         self.logWidget.append(" Sent postscript file to %s, selected dataset" % prnt)
 
@@ -915,8 +916,9 @@ Btw: Key_Up/Down change the slew rate. <br>"
             utils.ExceptionToLog( e, self.logWidget)
             
                     
-        if hasattr( self, "scan"): 
-            del self.scan
+        if self.scan is not None:
+            self.deleteScan()
+
         self.updateTimer.stop()
         
         self.flagClosed = True
@@ -927,7 +929,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         - update the motor position
         - update the signal plot
         '''
-        
+
         x = utils.getPosition( self.dev) 
 
         self.activityIndex += 1
@@ -969,13 +971,13 @@ Btw: Key_Up/Down change the slew rate. <br>"
             self.updateTimer.start( definitions.TIMEOUT_REFRESH_MOTOR)
             return
 
-        if not hasattr( self, 'scan'):
+        if self.scan is None:
             try:
                 self.createScan()
             except Exception, e:
                 self.logWidget.append( "cb_refresh, exception from createScan")
                 self.logWidget.append( repr( e))
-                print "moveMotor.refreshMoveMotor: caught exception", repr( e)
+                print "moveMotor.refreshMoveMotor: caught exception\n", repr( e)
                 sys.exit(255)
             #print "cb_refresh: created", self.scan.name
             self.curr_index = 0
@@ -994,7 +996,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
             #print "goingRight", self.goingRight, "curr_index", self.curr_index, "x", x, "lastX ", self.lastX
             if self.goingRight and x < self.lastX or not self.goingRight and x > self.lastX:   
                 #print "cb_refresh: direction changed, creating new scan"
-                del self.scan
+                self.deleteScan()
                 self.createScan()
                 self.curr_index = 0
                 self.signalMax = y
@@ -1015,33 +1017,43 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         return 
 
+    def deleteScan( self): 
+        '''
+        use the graphics module to abstract Spectra/PySpectra
+        '''
+        graphics.deleteScan( self.scan)
+        #+++del self.scan
+        self.scan = None
+        return 
+
     def createScan( self):
 
         self.nameGQE = HasyUtils.createScanName( "scanplot")
 
-        if hasattr( self, 'scan'):
-            #print "createScan: self.scan exists already, delete it"
-            del self.scan
+        if self.scan is not None:
+            self.deleteScan()
 
-        #print "createScan, ", self.nameGQE, "cursor", self.cursorIsActive
         if self.cursorIsActive:
             self.cursorGUI.close()
 
         try:
-            self.scan = Spectra.SCAN( name = self.nameGQE,
-                                      start = utils.getUnitLimitMin( self.dev, self.logWidget),
-                                      stop = utils.getUnitLimitMax( self.dev, self.logWidget), 
-                                      np = 1000, 
-                                      ylabel = self.counterName,
-                                      xlabel = "%s/%s" % (self.dev[ 'hostname'],self.dev[ 'device']), 
-                                      comment = "Timer: %s, SampleTime: %g" % (self.timerName, 
-                                                                               self.sampleTime),
-                                      NoDelete = False, 
-                                      colour = 2,
-                                      at = "(1,1,1)")
+            self.scan = graphics.Scan( name = self.nameGQE,
+                                       start = utils.getUnitLimitMin( self.dev, self.logWidget),
+                                       stop = utils.getUnitLimitMax( self.dev, self.logWidget), 
+                                       np = 1000, 
+                                       ylabel = self.counterName,
+                                       xlabel = "%s/%s" % (self.dev[ 'hostname'],self.dev[ 'device']), 
+                                       comment = "Timer: %s, SampleTime: %g" % (self.timerName, 
+                                                                                self.sampleTime),
+                                       NoDelete = False, 
+                                       colour = 2,
+                                       at = "(1,1,1)")
         except Exception, e:
+            print "moveMotor.createScan caught an exception"
+            print repr( e)
             self.logWidget.append( "createScan: caught error")
             utils.ExceptionToLog( e, self.logWidget)
+            return 
 
         self.scan.setCurrent( 0)
 
@@ -1448,36 +1460,22 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
     def cb_launchProp( self):
 
-        #
-        # replace self.w_prop with w_prop to allow for one 
-        # properties widget only
-        #
         self.w_prop = tngAPI.deviceProperties( self.dev, self.logWidget, self)
         self.w_prop.show()
 
 
     def cb_launchEncAttr( self):
-        global w_encAttr
-        if w_encAttr: 
-            w_encAttr.close()
-            del w_encAttr
-            w_encAttr = None
 
         if self.flagOffline:
             QtGui.QMessageBox.critical(self, 'Error', 
                                        "launchEncAttr: %s, device is offline" % self.dev[ 'name'], 
                                        QtGui.QMessageBox.Ok)
             return
-        w_encAttr = motorEncAttributes( self.dev, self.logWidget, self)
-        w_encAttr.show()
+        self.w_encAttr = motorEncAttributes( self.dev, self.logWidget, self)
+        self.w_encAttr.show()
 
 
     def cb_launchZmxAttr( self):
-        global w_zmxAttr
-        if w_zmxAttr: 
-            w_zmxAttr.close()
-            del w_zmxAttr
-            w_zmxAttr = None
 
-        w_zmxAttr = motorZmxAttributes( self.dev, self.logWidget, self)
-        w_zmxAttr.show()
+        self.w_zmxAttr = motorZmxAttributes( self.dev, self.logWidget, self)
+        self.w_zmxAttr.show()

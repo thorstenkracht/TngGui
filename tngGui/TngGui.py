@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys, math, time, os, json, signal, argparse
-import Spectra, HasyUtils
+import HasyUtils
 #from PyQt4 import QtGui
 #from PyQt4 import QtCore
 from taurus.external.qt import QtGui, QtCore 
@@ -12,6 +12,7 @@ import lib.defineSignal as defineSignal
 import lib.moveMotor as moveMotor
 import lib.tngAPI as tngAPI
 import lib.utils as utils
+import lib.graphics as graphics
 import lib.definitions as definitions
 
 import PyTango
@@ -46,16 +47,24 @@ modulesRoiCounters = ['mca8715roi',
 
 
 
-class motorMenu( QtGui.QMainWindow):
+class mainMenu( QtGui.QMainWindow):
     '''
     the main class of the TngTool application
     '''
     def __init__( self, timerName, counterName, parent = None):
-        super( motorMenu, self).__init__( parent)
+        super( mainMenu, self).__init__( parent)
         self.setWindowTitle( "TngTool")
-        
+     
         self.timerName = timerName
         self.counterName = counterName
+
+        self.w_attr = None
+        self.w_commands = None
+        self.w_encAttr = None
+        self.w_moveMotor = None
+        self.w_prop = None
+        self.w_timer = None
+
         self.move( 700, 20)
 
         self.prepareWidgets()
@@ -315,11 +324,43 @@ class motorMenu( QtGui.QMainWindow):
     # clicking the X at the right-upper corner of the frame
     #
     def closeEvent( self, e):
-        self.cb_closeMotorMenu()
+        self.cb_closeMainMenu()
         #e.ignore()
     
-    def cb_closeMotorMenu( self):
+    def cb_closeMainMenu( self):
+
         self.cb_stopMove()
+
+
+        if self.w_attr is not None: 
+            self.w_attr.close()
+            self.w_attr = None
+
+        if self.w_commands is not None: 
+            self.w_commands.close()
+            self.w_commands = None
+
+        if self.w_encAttr is not None: 
+            self.w_encAttr.close()
+            self.w_encAttr = None
+
+        if self.w_moveMotor is not None: 
+            self.w_moveMotor.close()
+            self.w_moveMotor = None
+
+        if self.w_prop is not None: 
+            self.w_prop.close()
+            self.w_prop = None
+
+        if self.w_timer is not None:
+            self.w_timer.close()
+            self.w_timer = None
+        #
+        # eventually 
+        #
+        graphics.close()
+
+        return 
 
     def cb_editOnlineXml( self):
         if not os.access( "/online_dir/online.xml", os.R_OK):
@@ -612,8 +653,6 @@ class motorMenu( QtGui.QMainWindow):
         self.base.setLayout( layout_grid)
         self.scrollArea.setWidget( self.base)
         self.refreshFunc = self.refreshMotors
-
-        #print "launching widget"
 
     def fillIORegs( self):
 
@@ -1419,8 +1458,9 @@ class motorMenu( QtGui.QMainWindow):
 
     def make_cb_move( self, dev, logWidget):
         def cb():
-            if hasattr( self, "w_moveMotor"):
-                self.w_moveMotor.cb_closeMoveMotor()
+
+            if self.w_moveMotor is not None:
+                self.w_moveMotor.close()
                 del self.w_moveMotor
                 
             try:
@@ -2084,6 +2124,7 @@ Examples:
     #parser.add_argument( '-t', dest='timerName', nargs='?', help='signal timer')
     parser.add_argument( '-t', dest='tags', nargs='?', help='tags matching online.xml tags')
     #parser.add_argument('-l', dest="list", action="store_true", help='list server and devices')
+    parser.add_argument('-s', dest="spectra", action="store_true", help='use spectra for graphics')
     args = parser.parse_args()
 
     # 
@@ -2577,12 +2618,15 @@ def createProxy( dev):
 def main():
     global allDevices
     global selectedMotors
-    #
-    # open spectra here to avoid x-errors on image exit
-    #
-    Spectra.gra_command( "cls")
 
     args = parseCLI()
+    if args.spectra:
+        #
+        # open spectra here to avoid x-errors on image exit
+        #
+        graphics.setSpectra( True)
+
+
     sys.argv = []
     #app = TaurusApplication( sys.argv)
     #
@@ -2596,6 +2640,10 @@ def main():
         QtGui.QApplication.setStyle( 'Cleanlooks')
 
     app = QtGui.QApplication(sys.argv)
+    #
+    # cls() has to come after 'app = ...'
+    #
+    graphics.cls()
     #
     # the call afterwards, app.setStyle( 'CDE') (e.g.) has no effect at all
     #
@@ -2653,7 +2701,7 @@ def main():
             w = moveMotor.moveMotor( selectedMotors[0], timerName, counterName, None, allDevices, None)
             w.show()
         else:
-            mainW = motorMenu(timerName, counterName)
+            mainW = mainMenu(timerName, counterName)
             mainW.show()
     else:
         #
@@ -2663,9 +2711,8 @@ def main():
         if len( selectedMotors) == 0:
             print "TngTool: no motors found"
             return 0
-        mainW = motorMenu(timerName, counterName)
+        mainW = mainMenu(timerName, counterName)
         mainW.show()
-
     try:
         sys.exit( app.exec_())
     except Exception, e:
