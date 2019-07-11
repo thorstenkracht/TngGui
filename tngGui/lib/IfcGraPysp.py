@@ -78,9 +78,12 @@ def Scan( **hsh):
                           yLabel = hsh[ 'ylabel'],
                           color = lineColorArr[ hsh[ 'colour']], 
                           autoscaleX = True, 
+                          autoscaleY = True, 
                           at = hsh[ 'at'])
-        pysp.setComment( hsh[ 'comment'])
-        
+
+        scan.addText( text = hsh[ 'comment'], x = 0.95, y = 0.95, hAlign = 'right', vAlign = 'top', 
+                      color = 'black', fontSize = None)
+            
     return scan
     
 

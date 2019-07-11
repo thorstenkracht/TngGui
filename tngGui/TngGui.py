@@ -12,7 +12,7 @@ import lib.defineSignal as defineSignal
 import lib.moveMotor as moveMotor
 import lib.tngAPI as tngAPI
 import lib.utils as utils
-import lib.graphics as graphics
+import lib.IfcGraPysp as IfcGraPysp
 import lib.definitions as definitions
 
 import PyTango
@@ -331,7 +331,6 @@ class mainMenu( QtGui.QMainWindow):
 
         self.cb_stopMove()
 
-
         if self.w_attr is not None: 
             self.w_attr.close()
             self.w_attr = None
@@ -358,7 +357,7 @@ class mainMenu( QtGui.QMainWindow):
         #
         # eventually 
         #
-        graphics.close()
+        IfcGraPysp.close()
 
         return 
 
@@ -2624,7 +2623,7 @@ def main():
         #
         # open spectra here to avoid x-errors on image exit
         #
-        graphics.setSpectra( True)
+        IfcGraPysp.setSpectra( True)
 
 
     sys.argv = []
@@ -2643,7 +2642,7 @@ def main():
     #
     # cls() has to come after 'app = ...'
     #
-    graphics.cls()
+    IfcGraPysp.cls()
     #
     # the call afterwards, app.setStyle( 'CDE') (e.g.) has no effect at all
     #

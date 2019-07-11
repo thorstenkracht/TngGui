@@ -5,7 +5,7 @@ import PyTango
 import math, time, sys, os
 import definitions, utils, HasyUtils, Spectra
 import tngAPI, cursorGui
-import graphics
+import IfcGraPysp
 
 class SelectMotor( QtGui.QMainWindow):
     def __init__( self, parent = None):
@@ -780,7 +780,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
     def cb_writeFile( self):
         #Spectra.gra_command( "write/fio %s" % self.nameGQE)
-        graphics.writeFile( self.nameGQE)
+        IfcGraPysp.writeFile( self.nameGQE)
         self.logWidget.append( "write/nocon/fio %s" % self.nameGQE)
 
     def cb_postscript(self):
@@ -792,7 +792,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
             QtGui.QMessageBox.about(self, 'Info Box', "No shell environment variable PRINTER.") 
             return
 
-        graphics.createHardCopy( prnt)
+        IfcGraPysp.createHardCopy( prnt)
         #Spectra.gra_command(" postscript/redisplay/nolog/nocon/print/lp=%s" % prnt)
         self.logWidget.append( HasyUtils.getDateTime())
         self.logWidget.append(" Sent postscript file to %s, selected dataset" % prnt)
@@ -1019,9 +1019,9 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
     def deleteScan( self): 
         '''
-        use the graphics module to abstract Spectra/PySpectra
+        use the IfcGraPysp module to abstract Spectra/PySpectra
         '''
-        graphics.deleteScan( self.scan)
+        IfcGraPysp.deleteScan( self.scan)
         #+++del self.scan
         self.scan = None
         return 
@@ -1037,7 +1037,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
             self.cursorGUI.close()
 
         try:
-            self.scan = graphics.Scan( name = self.nameGQE,
+            self.scan = IfcGraPysp.Scan( name = self.nameGQE,
                                        start = utils.getUnitLimitMin( self.dev, self.logWidget),
                                        stop = utils.getUnitLimitMax( self.dev, self.logWidget), 
                                        np = 1000, 
@@ -1116,7 +1116,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         if self.motor.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
-            self.logWidget.append( "toLeftLimit: moving, send Stop")
+            self.logWidget.append( "toLeftLimit: moving, sent Stop")
             return
         #
         # involve some rounding
@@ -1132,7 +1132,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         if self.motor.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
-            self.logWidget.append( "toLeftIncr: moving, send Stop")
+            self.logWidget.append( "toLeftIncr: moving, sent Stop")
             return
 
         posReq = utils.getPosition( self.dev) - self.incr
@@ -1150,7 +1150,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         if self.motor.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
-            self.logWidget.append( "toLeftStep: moving, send Stop")
+            self.logWidget.append( "toLeftStep: moving, sent Stop")
             return
 
         blOrig = None
@@ -1180,7 +1180,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         if self.motor.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
-            self.logWidget.append( "toRightLimit: moving, send Stop")
+            self.logWidget.append( "toRightLimit: moving, sent Stop")
             return
 
         #
@@ -1197,7 +1197,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         if self.motor.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
-            self.logWidget.append( "toRightIncr: moving, send Stop")
+            self.logWidget.append( "toRightIncr: moving, sent Stop")
             return
 
         posReq = utils.getPosition( self.dev) + self.incr
@@ -1214,7 +1214,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         if self.motor.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
-            self.logWidget.append( "toRightStep: moving, send Stop")
+            self.logWidget.append( "toRightStep: moving, sent Stop")
             return
 
         blOrig = None
