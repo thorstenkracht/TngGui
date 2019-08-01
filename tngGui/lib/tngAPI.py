@@ -105,14 +105,23 @@ class deviceAttributes( QtGui.QMainWindow):
             self.statusBar.addPermanentWidget( self.clearError) # 'permanent' to shift it right
             self.clearError.clicked.connect( self.cb_clearError)
 
+
+        self.commands = QtGui.QPushButton(self.tr("Commands")) 
+        self.statusBar.addWidget( self.commands)
+        QtCore.QObject.connect( self.commands, QtCore.SIGNAL( utils.fromUtf8("clicked()")), self.cb_launchCommands)
+
+        self.properties = QtGui.QPushButton(self.tr("Properties")) 
+        self.statusBar.addWidget( self.properties)
+        QtCore.QObject.connect( self.properties, QtCore.SIGNAL( utils.fromUtf8("clicked()")), self.cb_launchProperties)
+            
         self.apply = QtGui.QPushButton(self.tr("&Apply")) 
         self.statusBar.addPermanentWidget( self.apply) # 'permanent' to shift it right
-        QtCore.QObject.connect( self.apply, QtCore.SIGNAL(utils.fromUtf8("clicked()")), self.cb_applyDeviceAttributes)
+        QtCore.QObject.connect( self.apply, QtCore.SIGNAL( utils.fromUtf8("clicked()")), self.cb_applyDeviceAttributes)
         self.apply.setShortcut( "Alt+a")
 
         self.exit = QtGui.QPushButton(self.tr("E&xit")) 
         self.statusBar.addPermanentWidget( self.exit) # 'permanent' to shift it right
-        QtCore.QObject.connect( self.exit, QtCore.SIGNAL(utils.fromUtf8("clicked()")), self.cb_closeMotorAttr)
+        QtCore.QObject.connect( self.exit, QtCore.SIGNAL( utils.fromUtf8("clicked()")), self.cb_closeMotorAttr)
         self.exit.setShortcut( "Alt+x")
 
         self.updateTimer = QtCore.QTimer(self)
@@ -297,6 +306,17 @@ class deviceAttributes( QtGui.QMainWindow):
     def cb_initVFCADC( self):
         self.dev[ 'proxy'].InitVFCADC()
 
+    def cb_launchCommands( self): 
+
+        self.w_commands = deviceCommands( self.dev, self.logWidget, self)
+        self.w_commands.show()
+        return 
+
+    def cb_launchProperties( self): 
+        self.w_prop = deviceProperties( self.dev, self.logWidget, self)
+        self.w_prop.show()
+        return 
+        
     def cb_refreshAttr( self):
         
         if self.isMinimized(): 
@@ -785,6 +805,16 @@ class deviceCommands( QtGui.QMainWindow):
         self.statusBar = QtGui.QStatusBar()
         self.setStatusBar( self.statusBar)
 
+
+        self.attributes = QtGui.QPushButton(self.tr("Attributes")) 
+        self.statusBar.addWidget( self.attributes)
+        QtCore.QObject.connect( self.attributes, QtCore.SIGNAL( utils.fromUtf8("clicked()")), self.cb_launchAttributes)
+
+        self.properties = QtGui.QPushButton(self.tr("Properties")) 
+        self.statusBar.addWidget( self.properties)
+        QtCore.QObject.connect( self.properties, QtCore.SIGNAL( utils.fromUtf8("clicked()")), self.cb_launchProperties)
+
+        
         self.exit = QtGui.QPushButton(self.tr("E&xit")) 
         self.statusBar.addPermanentWidget( self.exit) # 'permanent' to shift it right
         QtCore.QObject.connect( self.exit, QtCore.SIGNAL(utils.fromUtf8("clicked()")), self.cb_closeMotorAttr)
@@ -806,6 +836,16 @@ class deviceCommands( QtGui.QMainWindow):
     def cb_refreshCommands( self):
         pass
 
+    def cb_launchAttributes( self): 
+
+        self.w_attributes = deviceAttributes( self.dev, self.logWidget, self)
+        self.w_attributes.show()
+        return 
+
+    def cb_launchProperties( self): 
+        self.w_prop = deviceProperties( self.dev, self.logWidget, self)
+        self.w_prop.show()
+        return 
 
     def getCommandInfoList( self): 
         '''
@@ -1727,6 +1767,15 @@ class deviceProperties( QtGui.QMainWindow):
         self.statusBar = QtGui.QStatusBar()
         self.setStatusBar( self.statusBar)
 
+
+        self.attributes = QtGui.QPushButton(self.tr("Attributes")) 
+        self.statusBar.addWidget( self.attributes)
+        QtCore.QObject.connect( self.attributes, QtCore.SIGNAL( utils.fromUtf8("clicked()")), self.cb_launchAttributes)
+
+        self.commands = QtGui.QPushButton(self.tr("Commands")) 
+        self.statusBar.addWidget( self.commands)
+        QtCore.QObject.connect( self.commands, QtCore.SIGNAL( utils.fromUtf8("clicked()")), self.cb_launchCommands)
+        
         self.apply = QtGui.QPushButton(self.tr("&Apply")) 
         self.statusBar.addPermanentWidget( self.apply) # 'permanent' to shift it right
         QtCore.QObject.connect( self.apply, QtCore.SIGNAL(utils.fromUtf8("clicked()")), self.cb_applyDeviceProperties)
@@ -1771,7 +1820,21 @@ class deviceProperties( QtGui.QMainWindow):
             "</ul>"
                 ))
         w.show()
-    
+
+
+    def cb_launchAttributes( self):
+        self.w_attr = deviceAttributes( self.dev, self.logWidget, self)
+        self.w_attr.show()
+        return 
+
+    def cb_launchCommands( self):
+        # 
+        # remove 'self.' to allow for one widget only
+        # 
+        self.w_commands = deviceCommands( self.dev, self.logWidget, self)
+        self.w_commands.show()
+        return 
+        
     def cb_refreshProp( self):
 
         if self.isMinimized(): 
