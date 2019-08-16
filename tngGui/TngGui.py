@@ -7,13 +7,13 @@ import HasyUtils
 from taurus.external.qt import QtGui, QtCore 
 import numpy as np
 
-import lib.helpBox as helpBox
-import lib.defineSignal as defineSignal
-import lib.moveMotor as moveMotor
-import lib.tngAPI as tngAPI
-import lib.utils as utils
-import lib.IfcGraPysp as IfcGraPysp
-import lib.definitions as definitions
+import tngGui.lib.helpBox as helpBox
+import tngGui.lib.defineSignal as defineSignal
+import tngGui.lib.moveMotor as moveMotor
+import tngGui.lib.tngAPI as tngAPI
+import tngGui.lib.utils as utils
+import tngGui.lib.IfcGraPysp as IfcGraPysp
+import tngGui.lib.definitions as definitions
 
 import PyTango
 
@@ -2098,19 +2098,19 @@ current file is copied to a backup file and a new one is created.\
 def parseCLI():
     parser = argparse.ArgumentParser( 
         formatter_class = argparse.RawDescriptionHelpFormatter,
-        description="TngTool", 
+        description="TngGui", 
         epilog='''\
 Examples:
-  TngTool.py 
+  TngGui.py 
     select all devices from online.xml
-  TngTool.py -p 
+  TngGui.py -p 
         select all devices from online.xml and from pool, 
         e.g. diffractometer motors
-  TngTool.py exp_mot01 exp_mot02
+  TngGui.py exp_mot01 exp_mot02
     selected motors from online.xml
-  TngTool.py -tags expert
+  TngGui.py -tags expert
     select all devices tagged with expert
-  TngTool.py exp_mot01
+  TngGui.py exp_mot01
     launches the move menu for one motor
 
   The Python regular expression rules apply.
@@ -2122,8 +2122,8 @@ Examples:
     #parser.add_argument( '-c', dest='counterName', nargs='?', help='signal counter')
     #parser.add_argument( '-t', dest='timerName', nargs='?', help='signal timer')
     parser.add_argument( '-t', dest='tags', nargs='?', help='tags matching online.xml tags')
-    #parser.add_argument('-l', dest="list", action="store_true", help='list server and devices')
-    parser.add_argument('-s', dest="spectra", action="store_true", help='use spectra for graphics')
+    #parser.add_argument( '-l', dest="list", action="store_true", help='list server and devices')
+    parser.add_argument( '-p', dest="pysp", action="store_true", help='use PySpectra for graphics')
     args = parser.parse_args()
 
     # 
@@ -2227,7 +2227,7 @@ def findAllMotors( args):
 
             dev[ 'proxy'] = createProxy( dev)
             if dev[ 'proxy'] is None:
-                #print "findAllMotors: No proxy do %s, ignoring this device (2)" % dev[ 'name']
+                #print "findAllMotors: No proxy to %s, ignoring this device (2)" % dev[ 'name']
                 continue
             poolMotors.append( dev)
 
@@ -2325,7 +2325,7 @@ def findAllTimers( args):
             if (dev['type'].lower() == 'timer'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print "findAllTimers: No proxy do %s, ignoring this device" % dev[ 'name']
+                    print "findAllTimers: No proxy to %s, ignoring this device" % dev[ 'name']
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2363,7 +2363,7 @@ def findAllIORegs( args):
             if (dev['type'].lower() == 'input_register'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print "findAllIORegs: No proxy do %s, ignoring this device" % dev[ 'name']
+                    print "findAllIORegs: No proxy to %s, ignoring this device" % dev[ 'name']
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2372,7 +2372,7 @@ def findAllIORegs( args):
             if (dev['type'].lower() == 'output_register'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print "findIORegs: No proxy do %s, ignoring this device" % dev[ 'name']
+                    print "findIORegs: No proxy to %s, ignoring this device" % dev[ 'name']
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2413,7 +2413,7 @@ def findAllAdcDacs( args):
                 dev['module'].lower() == 'tip850adc'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print "findAllAdcDacs: No proxy do %s, ignoring this device" % dev[ 'name']
+                    print "findAllAdcDacs: No proxy to %s, ignoring this device" % dev[ 'name']
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2422,7 +2422,7 @@ def findAllAdcDacs( args):
             if (dev['module'].lower() == 'vfcadc'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print "findAllAdcDacs: No proxy do %s, ignoring this device" % dev[ 'name']
+                    print "findAllAdcDacs: No proxy to %s, ignoring this device" % dev[ 'name']
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2432,7 +2432,7 @@ def findAllAdcDacs( args):
                 dev['module'].lower() == 'tip850dac'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print "findAdcDacs: No proxy do %s, ignoring this device" % dev[ 'name']
+                    print "findAdcDacs: No proxy to %s, ignoring this device" % dev[ 'name']
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2476,7 +2476,7 @@ def findAllMCAs( args):
         if (dev['module'].lower() == 'mca_8701'):
             dev[ 'proxy'] = createProxy( dev)
             if dev[ 'proxy'] is None:
-                print "findMCAs: No proxy do %s, ignoring this device" % dev[ 'name']
+                print "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name']
                 continue
             dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
             dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2518,7 +2518,7 @@ def findAllCameras( args):
         if dev['module'].lower() in cameraNames: 
             dev[ 'proxy'] = createProxy( dev)
             if dev[ 'proxy'] is None:
-                print "findMCAs: No proxy do %s, ignoring this device" % dev[ 'name']
+                print "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name']
                 continue
             dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
             dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2546,7 +2546,7 @@ def findAllPiLCModules( args):
         if dev['module'].lower() in PiLCModuleNames: 
             dev[ 'proxy'] = createProxy( dev)
             if dev[ 'proxy'] is None:
-                print "findMCAs: No proxy do %s, ignoring this device" % dev[ 'name']
+                print "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name']
                 continue
             dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
             dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2574,7 +2574,7 @@ def findAllModuleTangos( args):
         if dev['module'].lower() == 'module_tango':
             dev[ 'proxy'] = createProxy( dev)
             if dev[ 'proxy'] is None:
-                print "findModuleTangos: No proxy do %s, ignoring this device" % dev[ 'name']
+                print "findModuleTangos: No proxy to %s, ignoring this device" % dev[ 'name']
                 continue
             dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
             dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2600,11 +2600,11 @@ def createProxy( dev):
         startTime = time.time()
         sts = proxy.state() 
     except Exception, e:
-        print "createProxy: no proxy to %s, flagging 'offline' " % dev[ 'name']
+        print "createProxy: no proxy to %s, flagging 'offline' " % dev[ 'name']   
         dev[ 'flagOffline'] = True
         #for arg in e.args:
         #    if hasattr( arg, 'desc'):
-        #        print " desc:   %s" % arg.desc
+        #        print " desc:   %s" % arg.desc 
         #        print " origin: %s" % arg.origin
         #        print " reason: %s" % arg.reason
         #        print ""
@@ -2619,17 +2619,18 @@ def main():
     global selectedMotors
 
     args = parseCLI()
-    if args.spectra:
+    if args.pysp:
         #
         # open spectra here to avoid x-errors on image exit
         #
+        IfcGraPysp.setSpectra( False)
+    else: 
         IfcGraPysp.setSpectra( True)
-
 
     sys.argv = []
     #app = TaurusApplication( sys.argv)
     #
-    # if .setStyle() is not called, if TngTool is running
+    # if .setStyle() is not called, if TngGui is running
     # locally (not via ssh), the function app.style().metaObject().className()
     # returns QGtkStyle. If this string is supplied to .setStyle()
     # a segmentation fault is generated, locally and remotely.
@@ -2642,7 +2643,7 @@ def main():
     #
     # cls() has to come after 'app = ...'
     #
-    IfcGraPysp.cls()
+    #+++IfcGraPysp.cls()
     #
     # the call afterwards, app.setStyle( 'CDE') (e.g.) has no effect at all
     #
@@ -2652,7 +2653,7 @@ def main():
     # print "style", app.style().metaObject().className()
 
     if args.tags and len( args.namePattern) > 0:
-        print "TngTool: specify tags or names"
+        print "TngGui: specify tags or names"
         return 0
         
 
@@ -2691,7 +2692,7 @@ def main():
                     else:
                         selectedMotors.append( dev)
         if len( selectedMotors) == 0:
-            print "TngTool: no matching motors"
+            print "TngGui: no matching motors"
             return 0
         #
         # one motor specified: launch the moveMotor widget immediately
@@ -2708,7 +2709,7 @@ def main():
         #
         selectedMotors = allMotors
         if len( selectedMotors) == 0:
-            print "TngTool: no motors found"
+            print "TngGui: no motors found"
             return 0
         mainW = mainMenu(timerName, counterName)
         mainW.show()

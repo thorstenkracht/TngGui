@@ -27,6 +27,9 @@ def setSpectra( flag):
     else:
         useSpectra = False
 
+def getSpectra(): 
+    return useSpectra
+ 
 def cls():
     if useSpectra:
         Spectra.gra_command( "cls/graphic")
@@ -78,7 +81,9 @@ def Scan( **hsh):
                           yLabel = hsh[ 'ylabel'],
                           color = lineColorArr[ hsh[ 'colour']], 
                           autoscaleX = True, 
-                          autoscaleY = True, 
+                          autoscaleY = True,
+                          motorList = hsh[ 'motorList'], 
+                          logWidget = hsh[ 'logWidget'], 
                           at = hsh[ 'at'])
 
         scan.addText( text = hsh[ 'comment'], x = 0.95, y = 0.95, hAlign = 'right', vAlign = 'top', 

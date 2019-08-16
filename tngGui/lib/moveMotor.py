@@ -6,6 +6,7 @@ import math, time, sys, os
 import definitions, utils, HasyUtils, Spectra
 import tngAPI, cursorGui
 import IfcGraPysp
+import PySpectra.pySpectraGuiClass
 
 class SelectMotor( QtGui.QMainWindow):
     def __init__( self, parent = None):
@@ -83,7 +84,7 @@ class moveMotor( QtGui.QMainWindow):
 
         self.updateCounts = 0
 
-        self.motor = dev[ 'proxy']
+        self.motorProxy = dev[ 'proxy']
         self.slewRateFactor = 1.
         #
         # store the original motor attributes
@@ -475,11 +476,18 @@ class moveMotor( QtGui.QMainWindow):
         self.statusBar.addPermanentWidget( self.w_zmxAttrButton) # 'permanent' to shift it right
         self.w_zmxAttrButton.clicked.connect( self.cb_launchZmxAttr)
 
-        self.cursor = QtGui.QPushButton(self.tr("&Cursor")) 
-        self.cursor.setToolTip( "Launch cursor widget")
-        self.statusBar.addPermanentWidget( self.cursor) # 'permanent' to shift it right
-        self.cursor.clicked.connect( self.cb_launchCursor)
-        self.cursor.setShortcut( "Alt+c")
+        if IfcGraPysp.getSpectra(): 
+            self.cursor = QtGui.QPushButton(self.tr("&Cursor")) 
+            self.cursor.setToolTip( "Launch cursor widget")
+            self.statusBar.addPermanentWidget( self.cursor) # 'permanent' to shift it right
+            self.cursor.clicked.connect( self.cb_launchCursor)
+            self.cursor.setShortcut( "Alt+c")
+        else:
+            self.pysp = QtGui.QPushButton(self.tr("pysp")) 
+            self.pysp.setToolTip( "Launch pysp widget")
+            self.statusBar.addPermanentWidget( self.pysp) # 'permanent' to shift it right
+            self.pysp.clicked.connect( self.cb_launchPyspGui)
+
         #
         # create the log widget, if necessary
         #
@@ -588,7 +596,7 @@ class moveMotor( QtGui.QMainWindow):
         called from SelectMotor()
         '''
         self.dev = dev
-        self.motor = dev[ 'proxy']
+        self.motorProxy = dev[ 'proxy']
         self.setWindowTitle( "Move %s" % dev[ 'name'])
         self.flagDisplaySignal = True
         self.cursorIsActive = False
@@ -680,6 +688,8 @@ Btw: Key_Up/Down change the slew rate. <br>"
         
     def signalChanged( self):
         '''
+        timerName, counterName, sampleTime may have changed: 
+        create new proxies and delete the scan
         called also from defineSignal.DefineSignal
         '''
         #print "signalChanged, timer", self.timerName, "counter", self.counterName
@@ -836,9 +846,9 @@ Btw: Key_Up/Down change the slew rate. <br>"
     def cb_sliderReleased( self):
         value = self.w_slider.value()
 
-        if self.motor.state() == PyTango.DevState.MOVING:
+        if self.motorProxy.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
-            while self.motor.state() == PyTango.DevState.MOVING:
+            while self.motorProxy.state() == PyTango.DevState.MOVING:
                 time.sleep(0.01)
 
         posReq = (utils.getUnitLimitMax( self.dev, self.logWidget) - utils.getUnitLimitMin( self.dev, self.logWidget))*value/\
@@ -907,9 +917,9 @@ Btw: Key_Up/Down change the slew rate. <br>"
             return
         
         try: 
-            if self.motor.state() == PyTango.DevState.MOVING:
+            if self.motorProxy.state() == PyTango.DevState.MOVING:
                 utils.execStopMove( self.dev)
-                while self.motor.state() == PyTango.DevState.MOVING:
+                while self.motorProxy.state() == PyTango.DevState.MOVING:
                     time.sleep(0.01)
         except Exception, e:
             self.logWidget.append( "cb_closeMoveMotor: caught exception for %s" % (self.dev[ 'fullName']))
@@ -1038,16 +1048,18 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         try:
             self.scan = IfcGraPysp.Scan( name = self.nameGQE,
-                                       start = utils.getUnitLimitMin( self.dev, self.logWidget),
-                                       stop = utils.getUnitLimitMax( self.dev, self.logWidget), 
-                                       np = 1000, 
-                                       ylabel = self.counterName,
-                                       xlabel = "%s/%s" % (self.dev[ 'hostname'],self.dev[ 'device']), 
-                                       comment = "Timer: %s, SampleTime: %g" % (self.timerName, 
-                                                                                self.sampleTime),
-                                       NoDelete = False, 
-                                       colour = 2,
-                                       at = "(1,1,1)")
+                                         start = utils.getUnitLimitMin( self.dev, self.logWidget),
+                                         stop = utils.getUnitLimitMax( self.dev, self.logWidget), 
+                                         np = 1000, 
+                                         ylabel = self.counterName,
+                                         xlabel = "%s/%s" % (self.dev[ 'hostname'],self.dev[ 'device']), 
+                                         comment = "Timer: %s, SampleTime: %g" % (self.timerName, 
+                                                                                  self.sampleTime),
+                                         NoDelete = False, 
+                                         colour = 2,
+                                         at = "(1,1,1)",
+                                         motorList = [ self.motorProxy],
+                                         logWidget = self.logWidget)
         except Exception, e:
             print "moveMotor.createScan caught an exception"
             print repr( e)
@@ -1103,9 +1115,9 @@ Btw: Key_Up/Down change the slew rate. <br>"
             self.slewRateComboBox.setCurrentIndex( index)
 
     def cb_slewChanged( self):
-        if self.motor.state() == PyTango.DevState.MOVING:
+        if self.motorProxy.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
-            while self.motor.state() == PyTango.DevState.MOVING:
+            while self.motorProxy.state() == PyTango.DevState.MOVING:
                 time.sleep(0.01)
         temp = self.slewRateComboBox.currentText()
         # 100% -> 100
@@ -1114,7 +1126,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
     def cb_toLeftLimit( self): 
 
-        if self.motor.state() == PyTango.DevState.MOVING:
+        if self.motorProxy.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
             self.logWidget.append( "toLeftLimit: moving, sent Stop")
             return
@@ -1122,15 +1134,15 @@ Btw: Key_Up/Down change the slew rate. <br>"
         # involve some rounding
         #
         posReq = float( "%g" % utils.getUnitLimitMin( self.dev, self.logWidget))
-        if hasattr( self.motor, "unitbacklash"):
-            if self.motor.unitBacklash > 0:
-                posReq += self.motor.unitBacklash*1.5 # beware of rounding errors
+        if hasattr( self.motorProxy, "unitbacklash"):
+            if self.motorProxy.unitBacklash > 0:
+                posReq += self.motorProxy.unitBacklash*1.5 # beware of rounding errors
 
         self.moveTarget( posReq)
 
     def cb_toLeftIncr( self): 
 
-        if self.motor.state() == PyTango.DevState.MOVING:
+        if self.motorProxy.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
             self.logWidget.append( "toLeftIncr: moving, sent Stop")
             return
@@ -1148,37 +1160,37 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
     def cb_toLeftStep( self): 
 
-        if self.motor.state() == PyTango.DevState.MOVING:
+        if self.motorProxy.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
             self.logWidget.append( "toLeftStep: moving, sent Stop")
             return
 
         blOrig = None
-        if hasattr( self.motor, "unitbacklash"):
-            blOrig = self.motor.unitbacklash
-            self.motor.unitbacklash = 0
-        posSteps = self.motor.StepPositionController
-        if self.motor.conversion > 0:
+        if hasattr( self.motorProxy, "unitbacklash"):
+            blOrig = self.motorProxy.unitbacklash
+            self.motorProxy.unitbacklash = 0
+        posSteps = self.motorProxy.StepPositionController
+        if self.motorProxy.conversion > 0:
             posSteps -= 1
         else:
             posSteps += 1
-        self.motor.setupStepMove( posSteps)
-        self.motor.startMove()
+        self.motorProxy.setupStepMove( posSteps)
+        self.motorProxy.startMove()
 
-        while self.motor.state() == PyTango.DevState.MOVING:
+        while self.motorProxy.state() == PyTango.DevState.MOVING:
             time.sleep(0.01)
         if blOrig is not None:
-            self.motor.unitbacklash = bLOrig
+            self.motorProxy.unitbacklash = bLOrig
 
     def cb_stop( self): 
-        if self.motor.state() == PyTango.DevState.MOVING:
+        if self.motorProxy.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
-            while self.motor.state() == PyTango.DevState.MOVING:
+            while self.motorProxy.state() == PyTango.DevState.MOVING:
                 time.sleep(0.01)
         
     def cb_toRightLimit( self): 
 
-        if self.motor.state() == PyTango.DevState.MOVING:
+        if self.motorProxy.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
             self.logWidget.append( "toRightLimit: moving, sent Stop")
             return
@@ -1187,15 +1199,15 @@ Btw: Key_Up/Down change the slew rate. <br>"
         # involve some rounding
         #
         posReq = float( "%g" % utils.getUnitLimitMax( self.dev, self.logWidget))
-        if hasattr( self.motor, "unitbacklash"):
-            if self.motor.unitBacklash < 0:
-                posReq += self.motor.unitBacklash*1.5 # beware of rounding errors
+        if hasattr( self.motorProxy, "unitbacklash"):
+            if self.motorProxy.unitBacklash < 0:
+                posReq += self.motorProxy.unitBacklash*1.5 # beware of rounding errors
 
         self.moveTarget( posReq)
 
     def cb_toRightIncr( self): 
 
-        if self.motor.state() == PyTango.DevState.MOVING:
+        if self.motorProxy.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
             self.logWidget.append( "toRightIncr: moving, sent Stop")
             return
@@ -1212,44 +1224,47 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
     def cb_toRightStep( self): 
 
-        if self.motor.state() == PyTango.DevState.MOVING:
+        if self.motorProxy.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
             self.logWidget.append( "toRightStep: moving, sent Stop")
             return
 
         blOrig = None
-        if hasattr( self.motor, "unitbacklash"):
-            blOrig = self.motor.unitbacklash 
-            self.motor.unitbacklash = 0
-        posSteps = self.motor.StepPositionController
-        if self.motor.conversion > 0:
+        if hasattr( self.motorProxy, "unitbacklash"):
+            blOrig = self.motorProxy.unitbacklash 
+            self.motorProxy.unitbacklash = 0
+        posSteps = self.motorProxy.StepPositionController
+        if self.motorProxy.conversion > 0:
             posSteps += 1
         else:
             posSteps -= 1
-        self.motor.setupStepMove( posSteps)
-        self.motor.startMove()
+        self.motorProxy.setupStepMove( posSteps)
+        self.motorProxy.startMove()
 
-        while self.motor.state() == PyTango.DevState.MOVING:
+        while self.motorProxy.state() == PyTango.DevState.MOVING:
             time.sleep(0.01)
 
         if blOrig is not None:
-            self.motor.unitbacklash = blOrig
+            self.motorProxy.unitbacklash = blOrig
 
     def getSignal( self):
-
+        '''
+        measures the signal using self.counter, self.timer and self.sampleTime.
+        updates signalMax and return the signal value
+        '''
         #
         # we need at least a counter, the timer may be missing
         #
         if not self.counter:
             return None
         #
-        # do not getSignal(), if the motor is moved by some other application
-        # the reason why we now execute getSignal() is because the motor might
-        # have been moves by '<<' or '>>' meaning it is not moving but in fact
-        # has been moved
+        # do not getSignal(), if the motor is moved by some other application, 
+        # e.g. a scan started by spock. The question is how to deal with 
+        # fast moves like DAC. In this case the motor is not moving but has
+        # been moved.
         #
-        #if not self.motorMoving:
-        #    return None
+        if not self.motorMoving:
+            return None
 
         if (self.counterDev[ 'module'] == 'sis3820' or 
             self.counterDev[ 'module'] == 'vfcadc'):
@@ -1280,9 +1295,9 @@ Btw: Key_Up/Down change the slew rate. <br>"
         return cts
 
     def cb_toMax( self):
-        if self.motor.state() == PyTango.DevState.MOVING:
+        if self.motorProxy.state() == PyTango.DevState.MOVING:
             utils.execStopMove( self.dev)
-            while self.motor.state() == PyTango.DevState.MOVING:
+            while self.motorProxy.state() == PyTango.DevState.MOVING:
                 time.sleep(0.01)
 
         msg = "Move %s to %g" % ( self.dev[ 'name'], self.signalMaxX)
@@ -1319,7 +1334,14 @@ Btw: Key_Up/Down change the slew rate. <br>"
                                               logWidget = self.logWidget, 
                                               parent = self)        
         self.cursorGUI.show()
-        
+
+    def cb_launchPyspGui( self): 
+        '''
+        launches the pyspGui to allow for actions like the Cursor widget
+        '''
+        self.pyspGui = PySpectra.pySpectraGuiClass.pySpectraGui()
+        self.pyspGui.show()
+
     def moveTo( self):
         '''
         read the moveToLine widget and move the motor
@@ -1329,20 +1351,20 @@ Btw: Key_Up/Down change the slew rate. <br>"
         if len(temp) == 0:
             return
         posReq = float(temp)
-        if hasattr( self.motor, "unitbacklash"):
+        if hasattr( self.motorProxy, "unitbacklash"):
             if posReq > utils.getUnitLimitMax( self.dev, self.logWidget):
                 posReq = utils.getUnitLimitMax( self.dev, self.logWidget)
-                if self.motor.unitBacklash < 0:
-                    posReq += self.motor.unitBacklash
+                if self.motorProxy.unitBacklash < 0:
+                    posReq += self.motorProxy.unitBacklash
             if posReq < utils.getUnitLimitMin( self.dev, self.logWidget):
                 posReq = utils.getUnitLimitMin( self.dev, self.logWidget)
-                if self.motor.unitBacklash > 0:
-                    posReq += self.motor.unitBacklash
+                if self.motorProxy.unitBacklash > 0:
+                    posReq += self.motorProxy.unitBacklash
         self.moveTarget( posReq)
 
     def moveTarget( self, posReq):
 
-        if self.motor.state() != PyTango.DevState.ON:
+        if self.motorProxy.state() != PyTango.DevState.ON:
             QtGui.QMessageBox.critical(self, 'Error', 
                                        "moveTarget: state != ON (%s)" % self.dev[ 'name'], 
                                        QtGui.QMessageBox.Ok)
@@ -1360,9 +1382,9 @@ Btw: Key_Up/Down change the slew rate. <br>"
             self.logWidget.append( "%s, setting the position causes an error" % (self.dev[ 'name'])) 
             utils.ExceptionToLog( e, self.logWidget)
 
-            if self.motor.state() == PyTango.DevState.MOVING:
+            if self.motorProxy.state() == PyTango.DevState.MOVING:
                 utils.execStopMove( self.dev)
-                while self.motor.state() == PyTango.DevState.MOVING:
+                while self.motorProxy.state() == PyTango.DevState.MOVING:
                     time.sleep(0.01)
             
             self.motorMoving = False
@@ -1370,7 +1392,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
                 utils.setSlewRate( self.dev, slewRateOrig, self.logWidget) 
             return
 
-        while self.motor.state() == PyTango.DevState.MOVING:
+        while self.motorProxy.state() == PyTango.DevState.MOVING:
             time.sleep( 0.01)
             QtCore.QCoreApplication.processEvents()
         self.motorMoving = False
@@ -1384,7 +1406,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         '''
         move to a target position without backlash
         '''
-        if self.motor.state() != PyTango.DevState.ON:
+        if self.motorProxy.state() != PyTango.DevState.ON:
             QtGui.QMessageBox.critical(self, 'Error', 
                                        "moveTarget: state != ON (%s)" % self.dev[ 'name'], 
                                        QtGui.QMessageBox.Ok)
@@ -1394,9 +1416,9 @@ Btw: Key_Up/Down change the slew rate. <br>"
         self.targetPosition.setText( "%g" % posReq)
         blOrig = None
         slewRateOrig = None
-        if hasattr( self.motor, "unitbacklash"):
-            blOrig = self.motor.unitbacklash 
-            self.motor.unitbacklash = 0
+        if hasattr( self.motorProxy, "unitbacklash"):
+            blOrig = self.motorProxy.unitbacklash 
+            self.motorProxy.unitbacklash = 0
         slewRateOrig = utils.getSlewRate( self.dev, self.logWidget)
         if slewRateOrig is not None:
             utils.setSlewRate( self.dev, slewRateOrig*self.slewRateFactor, self.logWidget) 
@@ -1408,19 +1430,19 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
             self.motorMoving = False
             if blOrig is not None:
-                self.motor.unitBacklash = blOrig
+                self.motorProxy.unitBacklash = blOrig
             if slewRateOrig is not None:
                 utils.setSlewRate( self.dev, slewRateOrig, self.logWidget)
             return
 
         #self.w_slider.setFocus()
 
-        while self.motor.state() == PyTango.DevState.MOVING:
+        while self.motorProxy.state() == PyTango.DevState.MOVING:
             time.sleep( 0.01)
             QtCore.QCoreApplication.processEvents()
         self.motorMoving = False
         if blOrig is not None:
-            self.motor.unitBacklash = blOrig
+            self.motorProxy.unitBacklash = blOrig
         if slewRateOrig is not None:
             utils.setSlewRate( self.dev, slewRateOrig, self.logWidget)
         

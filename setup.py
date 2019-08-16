@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # this scipt is executed with 
 #
-#   $ cd /home/kracht/Misc/pySpectra
+#   $ cd /home/kracht/Misc/tngGui
 #   $ python setup.py sdist
 #     to build the source distribution, 
 #     creates dist/python-hasyutils-1.0.tar.gz 
 #     the tarball is used for remote installation only
 #
+#   kracht$ python setup.py build
 #   root$ python setup.py install
 #   root$ python setup.py clean
 #
@@ -60,8 +61,10 @@ setup( name="python-tnggui",
        #
        # beware: MANIFEST somehow memorizes the script names (can be deleted)
        #
-       scripts = [ 'tnggui/bin/TngGui.py',
+       scripts = [ 'tngGui/TngGui.py',
                    ],
-       packages = ['tnggui',], 
+       packages = ['tngGui',
+                   'tngGui/lib', 
+       ], 
 
    )
