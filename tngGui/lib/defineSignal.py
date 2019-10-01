@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from taurus.external.qt import QtGui, QtCore 
+import utils
 
 class DefineSignal( QtGui.QMainWindow):
     def __init__( self, parent = None, allDevices = None):
@@ -94,7 +95,7 @@ class DefineSignal( QtGui.QMainWindow):
 
         self.exit = QtGui.QPushButton(self.tr("Exit")) 
         self.statusBar.addPermanentWidget( self.exit) # 'permanent' to shift it right
-        QtCore.QObject.connect( self.exit, QtCore.SIGNAL(_fromUtf8("clicked()")), self.cb_closeDefineSignal)
+        QtCore.QObject.connect( self.exit, QtCore.SIGNAL(  utils.fromUtf8("clicked()")), self.cb_closeDefineSignal)
         self.exit.setShortcut( "Alt+x")
         self.exit.setText( "E&xit")
 

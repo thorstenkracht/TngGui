@@ -6,6 +6,7 @@ import math, time, sys, os
 import definitions, utils, HasyUtils, Spectra
 import tngAPI, cursorGui
 import IfcGraPysp
+import defineSignal
 import PySpectra.pySpectraGuiClass
 
 class SelectMotor( QtGui.QMainWindow):
@@ -71,6 +72,7 @@ class moveMotor( QtGui.QMainWindow):
         self.counter = None
         self.flagClosed = False
         self.flagOffline = False
+        self.pyspGui = None
         #
         # we don't want to getSignal(), if a motor is moved from another
         # application, like spock
@@ -520,19 +522,25 @@ class moveMotor( QtGui.QMainWindow):
         self.writeFileAction.triggered.connect( self.cb_writeFile)
         self.fileMenu.addAction( self.writeFileAction)
 
-        self.postscriptAction = QtGui.QAction('Postscript', self)        
-        self.postscriptAction.setStatusTip('Create postscript output')
-        self.postscriptAction.triggered.connect( self.cb_postscript)
-        self.fileMenu.addAction( self.postscriptAction)
+        self.hardcopyAction = QtGui.QAction('Hardcopy', self)        
+        if IfcGraPysp.getSpectra(): 
+            self.hardcopyAction.setStatusTip('Create postscript output')
+        else:
+            self.hardcopyAction.setStatusTip('Create pdf output')
+        self.hardcopyAction.triggered.connect( self.cb_hardcopy)
+        self.fileMenu.addAction( self.hardcopyAction)
 
-        self.postscriptActionA6 = QtGui.QAction('Postscript A6', self)        
-        self.postscriptActionA6.setStatusTip('Create postscript output, A6')
-        self.postscriptActionA6.triggered.connect( self.cb_postscriptA6)
-        self.fileMenu.addAction( self.postscriptActionA6)
-
-
-        self.clipboardAction = self.fileMenu.addAction(self.tr("SpectraGraphic to Clipboard"))
-        self.connect(self.clipboardAction, QtCore.SIGNAL("triggered()"), self.cb_clipboard)
+        self.hardcopyActionA6 = QtGui.QAction('Hardcopy A6', self)        
+        if IfcGraPysp.getSpectra(): 
+            self.hardcopyActionA6.setStatusTip('Create postscript output, A6')
+        else:
+            self.hardcopyActionA6.setStatusTip('Create pdf output, A6')
+        self.hardcopyActionA6.triggered.connect( self.cb_hardcopyA6)
+        self.fileMenu.addAction( self.hardcopyActionA6)
+        
+        if IfcGraPysp.getSpectra(): 
+            self.clipboardAction = self.fileMenu.addAction(self.tr("SpectraGraphic to Clipboard"))
+            self.connect(self.clipboardAction, QtCore.SIGNAL("triggered()"), self.cb_clipboard)
 
         self.exitAction = QtGui.QAction('E&xit', self)        
         self.exitAction.setStatusTip('Exit application')
@@ -793,7 +801,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         IfcGraPysp.writeFile( self.nameGQE)
         self.logWidget.append( "write/nocon/fio %s" % self.nameGQE)
 
-    def cb_postscript(self):
+    def _printHelper( self, frmt): 
         '''
         do the visible plot only
         '''
@@ -802,25 +810,23 @@ Btw: Key_Up/Down change the slew rate. <br>"
             QtGui.QMessageBox.about(self, 'Info Box', "No shell environment variable PRINTER.") 
             return
 
-        IfcGraPysp.createHardCopy( prnt)
-        #Spectra.gra_command(" postscript/redisplay/nolog/nocon/print/lp=%s" % prnt)
+        fName = IfcGraPysp.createHardCopy( printer = prnt, format = frmt, flagPrint = False)
         self.logWidget.append( HasyUtils.getDateTime())
-        self.logWidget.append(" Sent postscript file to %s, selected dataset" % prnt)
+        self.logWidget.append("Created %s (%s)" % (fName, frmt))
 
-    def cb_postscriptA6(self):
-        '''
-        do the visible plot only
-        '''
-        prnt = os.getenv( "PRINTER")
-        if prnt is None: 
-            QtGui.QMessageBox.about(self, 'Info Box', "No shell environment variable PRINTER.") 
-            return
-
-        Spectra.gra_command(" set 0.1/border=1")
-        Spectra.gra_command(" postscript/dina6/redisplay/nolog/nocon/print/lp=%s" % prnt)
-        Spectra.gra_command(" set 0.1/border=0")
-        self.logWidget.append( HasyUtils.getDateTime())
-        self.logWidget.append(" Sent postscript file to %s, selected dataset" % prnt)
+        msg = "Send %s to %s" % ( fName, prnt)
+        reply = QtGui.QMessageBox.question(self, 'YesNo', msg, 
+                                           QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+        if reply == QtGui.QMessageBox.Yes:
+            if os.system( "/usr/bin/lpr -P %s %s" % (prnt, fName)):
+                self.logWidget.append( "failed to print %s on %s" % (fName, prnt))
+            self.logWidget.append(" printed on %s" % (prnt))
+        
+    def cb_hardcopy(self):
+        self._printHelper( "DINA4")
+        
+    def cb_hardcopyA6(self):
+        self._printHelper( "DINA6")
     
     def cb_clipboard( self):
         import gtk
@@ -842,6 +848,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
     def cb_defineSignal( self):
         w = defineSignal.DefineSignal( self, self.allDevices)
         w.show()
+        return w
 
     def cb_sliderReleased( self):
         value = self.w_slider.value()
@@ -930,6 +937,9 @@ Btw: Key_Up/Down change the slew rate. <br>"
             self.deleteScan()
 
         self.updateTimer.stop()
+
+        if self.pyspGui is not None:
+            self.pyspGui.close()
         
         self.flagClosed = True
         self.close()
@@ -1032,7 +1042,6 @@ Btw: Key_Up/Down change the slew rate. <br>"
         use the IfcGraPysp module to abstract Spectra/PySpectra
         '''
         IfcGraPysp.deleteScan( self.scan)
-        #+++del self.scan
         self.scan = None
         return 
 
@@ -1397,6 +1406,8 @@ Btw: Key_Up/Down change the slew rate. <br>"
             QtCore.QCoreApplication.processEvents()
         self.motorMoving = False
 
+        self.targetPosition.setText( "n.a.")
+
         if slewRateOrig is not None:
             utils.setSlewRate( self.dev, slewRateOrig, self.logWidget) 
         
@@ -1493,11 +1504,11 @@ Btw: Key_Up/Down change the slew rate. <br>"
                                        "launchEncAttr: %s, device is offline" % self.dev[ 'name'], 
                                        QtGui.QMessageBox.Ok)
             return
-        self.w_encAttr = motorEncAttributes( self.dev, self.logWidget, self)
+        self.w_encAttr = tngAPI.motorEncAttributes( self.dev, self.logWidget, self)
         self.w_encAttr.show()
 
 
     def cb_launchZmxAttr( self):
 
-        self.w_zmxAttr = motorZmxAttributes( self.dev, self.logWidget, self)
+        self.w_zmxAttr = tngAPI.motorZmxAttributes( self.dev, self.logWidget, self)
         self.w_zmxAttr.show()

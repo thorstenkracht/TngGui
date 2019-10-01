@@ -26,6 +26,7 @@ def setSpectra( flag):
         useSpectra = True
     else:
         useSpectra = False
+    return 
 
 def getSpectra(): 
     return useSpectra
@@ -35,6 +36,7 @@ def cls():
         Spectra.gra_command( "cls/graphic")
     else:
         pysp.cls()
+    return 
 
 def close(): 
 
@@ -42,9 +44,27 @@ def close():
         pass
     else:
         pysp.close()
+    return 
 
-def createHardCopy( prnt):
-    pass
+def createHardCopy( printer = None, flagPrint = False, format = 'DINA4'):
+    '''
+    create postscript/pdf file and send it to the printer
+    '''
+    fName = None
+    if useSpectra:
+        Spectra.gra_command(" set 0.1/border=1")
+        Spectra.gra_command(" postscript/%s/redisplay/nolog/nocon/print/lp=%s" % (format, prnt))
+        Spectra.gra_command(" set 0.1/border=0")
+        Spectra.gra_command(" postscript/redisplay/nolog/nocon/print/lp=%s" % printer)
+    else:
+        fName = pysp.createPDF( flagPrint = flagPrint, format = format)
+        #
+        # necessary to bring pqt and mpl again in-sync, mind lastIndex
+        #
+        pysp.cls()
+        pysp.display()
+
+    return fName
 
 def deleteScan( scan): 
     
@@ -56,8 +76,14 @@ def deleteScan( scan):
 
     return 
 
-def writeFile( fName):
-    pass
+def writeFile( nameGQE):
+
+    if useSpectra:
+        Spectra.gra_command( "write/fio %s" % nameGQE)
+    else:
+        pysp.write( [nameGQE])
+
+    return 
 
 def Scan( **hsh):
 

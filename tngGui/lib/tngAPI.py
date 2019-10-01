@@ -2,8 +2,9 @@
 
 from taurus.external.qt import QtGui, QtCore 
 import PyTango
-import math
+import math, os
 import definitions, utils, HasyUtils
+import json
 
 class deviceAttributes( QtGui.QMainWindow):
     def __init__( self, dev, logWidget, parent = None):
@@ -39,7 +40,7 @@ class deviceAttributes( QtGui.QMainWindow):
         self.fileMenu.addAction( self.exitAction)
 
 
-        if self.dev[ 'module'].lower() == "oms58":
+        if True or self.dev[ 'module'].lower() == "oms58":
             self.miscMenu = self.menuBar.addMenu('&Misc')
             self.blackBoxAction = QtGui.QAction( 'BlackBox', self)        
             self.blackBoxAction.triggered.connect( self.cb_blackBox)
@@ -98,6 +99,25 @@ class deviceAttributes( QtGui.QMainWindow):
             self.initVFCADC.setToolTip("Execute InitVFCADC")
             self.statusBar.addPermanentWidget( self.initVFCADC) # 'permanent' to shift it right
             self.initVFCADC.clicked.connect( self.cb_initVFCADC)
+
+        #
+        # MG specific
+        #
+        if self.dev[ 'type'].lower() == "measurement_group":
+            self.listMgElem = QtGui.QPushButton(self.tr("List Elem.")) 
+            self.listMgElem.setToolTip("List the configuration")
+            self.statusBar.addPermanentWidget( self.listMgElem) # 'permanent' to shift it right
+            self.listMgElem.clicked.connect( self.cb_listMgElem)
+
+            self.listMgConf = QtGui.QPushButton(self.tr("List Conf.")) 
+            self.listMgConf.setToolTip("List the configuration")
+            self.statusBar.addPermanentWidget( self.listMgConf) # 'permanent' to shift it right
+            self.listMgConf.clicked.connect( self.cb_listMgConf)
+            
+            self.deleteMg = QtGui.QPushButton(self.tr("Delete MG")) 
+            self.deleteMg.setToolTip("Delete the measurment group")
+            self.statusBar.addPermanentWidget( self.deleteMg) # 'permanent' to shift it right
+            self.deleteMg.clicked.connect( self.cb_deleteMg)
 
         if self.dev[ 'module'].lower() == "spk":
             self.clearError = QtGui.QPushButton(self.tr("Clear error")) 
@@ -306,6 +326,93 @@ class deviceAttributes( QtGui.QMainWindow):
     def cb_initVFCADC( self):
         self.dev[ 'proxy'].InitVFCADC()
 
+
+    def cb_listMgConf( self):
+        '''
+        creates a temporary file containing the configuration and 
+        calls an EDITOR to open it
+        '''
+        import tempfile
+
+        hsh = json.loads( self.dev[ 'proxy'].Configuration) 
+        ret = HasyUtils.dct_print2str( hsh)
+        new_file, filename = tempfile.mkstemp()
+        lst = self.dev[ 'proxy'].ElementList
+        os.write(new_file, "#\n# %s: %s \n#\n%s" % ( self.dev[ 'name'], str(lst), ret))
+        os.close(new_file)
+
+        editor = os.getenv( "EDITOR")
+        if editor is None:
+            editor = "emacs"
+        os.system( "%s %s&" % (editor, filename))
+        return 
+
+
+    def cb_deleteMg( self):
+        '''
+        delete a MG
+        '''
+        global allMGs
+
+        reply = QtGui.QMessageBox.question(self, 'YesNo', "Really delete %s" % ( self.dev[ 'name']), 
+                                           QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+        if reply != QtGui.QMessageBox.Yes:
+            self.logWidget.append( "Delete MG %s aborted" % self.dev[ 'name'])
+            return 
+
+        localPools = HasyUtils.getLocalPoolNames()
+        if len( localPools) == 0:
+            self.logWidget.append( "cb_deleteMg: no local pools")
+            return
+
+        try: 
+            pool = PyTango.DeviceProxy( localPools[0])
+        except Exception, e:
+            self.logWidget.append( "cb_deleteMg: failed to create proxy to %s" % localPools[0])
+            return 
+
+        mgList = pool.MeasurementGroupList
+        flag = False
+        for elm in mgList:
+            hsh = json.loads( elm)
+            if self.dev[ 'name'].lower() == hsh[ 'name'].lower():
+                flag = True
+                break
+
+        if not flag: 
+            self.logWidget.append( "cb_deleteMg: no MG %s" % self.dev[ 'name'])
+            return
+
+        pool.DeleteElement( self.dev[ 'name'])
+
+        #
+        # remove the deleted MG from allMGs
+        #
+        lst = allMGs[:]
+        allMGs = []
+        for elm in lst: 
+            if elm[ 'name'].lower() == self.dev[ 'name'].lower():
+                continue
+            allMGs.append( elm)
+        self.parent.fillMGs()
+        self.logWidget.append( "cb_deleteMg: deleted %s" % self.dev[ 'name'])
+        self.close()
+        
+        return 
+
+    def cb_listMgElem( self):
+        '''
+        append the elements of an MG to the log widget
+        '''
+
+        lst = self.dev[ 'proxy'].ElementList
+        tmp = ""
+        tmp += "%s: " % self.dev[ 'name']
+        for elm in lst: 
+            tmp += elm + " "
+        self.logWidget.append( tmp)
+        return 
+        
     def cb_launchCommands( self): 
 
         self.w_commands = deviceCommands( self.dev, self.logWidget, self)
