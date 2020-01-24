@@ -93,7 +93,7 @@ class moveMotor( QtGui.QMainWindow):
         #
         try:
             self.positionOld = utils.getPosition( self.dev)
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "%s, reading the position causes an error" % (self.dev[ 'name'])) 
             self.logWidget.append( "%s:" % repr( e))
             return
@@ -132,7 +132,7 @@ class moveMotor( QtGui.QMainWindow):
 
         try:
             sts = self.dev[ 'proxy'].state()
-        except Exception, e:
+        except Exception as e:
             self.w_motorPosition.setStyleSheet( "background-color:%s;" % definitions.RED_ALARM)
             self.flagOffline = True
             return 
@@ -188,7 +188,7 @@ class moveMotor( QtGui.QMainWindow):
             self.w_toLeftStep.setEnabled( False)
             self.w_toRightStep.setEnabled( False)
 
-        if self.dev.has_key( 'zmxdevice'):
+        if 'zmxdevice' in self.dev:
             self.w_zmxAttrButton.setEnabled( True)
         else:
             self.w_zmxAttrButton.setEnabled( False)
@@ -700,7 +700,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         create new proxies and delete the scan
         called also from defineSignal.DefineSignal
         '''
-        #print "signalChanged, timer", self.timerName, "counter", self.counterName
+        #print( "signalChanged, timer %s counter %s" %( self.timerName, self.counterName))
         #
         # d1_t01 -> p09/dgg2/d1.01
         # d1_c01 -> p09/counter/d1.01
@@ -779,7 +779,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         else:
             try:
                 self.timer = PyTango.DeviceProxy( timerDevice)
-            except Exception, e:
+            except Exception as e:
                 self.logWidget.append( "signalChanged: no proxy to %s" % timerDevice)
                 exceptionToLog( e, self.logWidget)
                 self.timer = None
@@ -787,7 +787,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         try:
             self.counter = PyTango.DeviceProxy( counterDevice)
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "signalChanged: no proxy to %s" % counterDevice)
             utils.ExceptionToLog( e, self.logWidget)
             self.counter = None
@@ -928,7 +928,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
                 utils.execStopMove( self.dev)
                 while self.motorProxy.state() == PyTango.DevState.MOVING:
                     time.sleep(0.01)
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "cb_closeMoveMotor: caught exception for %s" % (self.dev[ 'fullName']))
             utils.ExceptionToLog( e, self.logWidget)
             
@@ -994,12 +994,12 @@ Btw: Key_Up/Down change the slew rate. <br>"
         if self.scan is None:
             try:
                 self.createScan()
-            except Exception, e:
+            except Exception as e:
                 self.logWidget.append( "cb_refresh, exception from createScan")
                 self.logWidget.append( repr( e))
-                print "moveMotor.refreshMoveMotor: caught exception\n", repr( e)
+                print( "moveMotor.refreshMoveMotor: caught exception %s\n" % repr( e))
                 sys.exit(255)
-            #print "cb_refresh: created", self.scan.name
+            #print( "cb_refresh: created %s" % self.scan.name)
             self.curr_index = 0
         #
         # the second point determines the direction
@@ -1013,15 +1013,16 @@ Btw: Key_Up/Down change the slew rate. <br>"
         # direction changed? if so, create a new scan
         #
         if self.curr_index > 1:
-            #print "goingRight", self.goingRight, "curr_index", self.curr_index, "x", x, "lastX ", self.lastX
+            #print( "goingRight %s curr_index %d self.curr_index %d x %g lastX %g" % \
+            #    ( repr( self.goingRight), self.curr_index, x, self.lastX))
             if self.goingRight and x < self.lastX or not self.goingRight and x > self.lastX:   
-                #print "cb_refresh: direction changed, creating new scan"
+                #print( "cb_refresh: direction changed, creating new scan")
                 self.deleteScan()
                 self.createScan()
                 self.curr_index = 0
                 self.signalMax = y
 
-        #print "cb_refresh: storing index %x, x %g, y %g " % (self.curr_index, x, y)
+        #print( "cb_refresh: storing index %x, x %g, y %g " % (self.curr_index, x, y))
         self.scan.setX( self.curr_index, x)
         self.scan.setY( self.curr_index, y)
         self.scan.setCurrent( self.curr_index)
@@ -1069,9 +1070,9 @@ Btw: Key_Up/Down change the slew rate. <br>"
                                          at = "(1,1,1)",
                                          motorList = [ self.motorProxy],
                                          logWidget = self.logWidget)
-        except Exception, e:
-            print "moveMotor.createScan caught an exception"
-            print repr( e)
+        except Exception as e:
+            print( "moveMotor.createScan caught an exception")
+            print( repr( e))
             self.logWidget.append( "createScan: caught error")
             utils.ExceptionToLog( e, self.logWidget)
             return 
@@ -1089,7 +1090,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
             res = 0.1
         else:
             res = math.pow( 10, math.floor( math.log10(res) + 0.5))
-        lst = range( 5)
+        lst = list( range( 5))
         lst.reverse()
         
         self.incrComboBox.clear()
@@ -1289,7 +1290,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         try:
             cts = self.counter.read_attribute( self.counterAttributeName).value
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "getSignal, failed to read_attribte %s (%s)" % 
                                    (self.counterAttributeName, self.counterDev[ 'name']))
             utils.ExceptionToLog( e, self.logWidget)
@@ -1387,7 +1388,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         self.targetPosition.setText( "%g" % posReq)
         try:
             utils.setPosition( self.dev, posReq)
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "%s, setting the position causes an error" % (self.dev[ 'name'])) 
             utils.ExceptionToLog( e, self.logWidget)
 
@@ -1435,7 +1436,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
             utils.setSlewRate( self.dev, slewRateOrig*self.slewRateFactor, self.logWidget) 
         try:
             utils.setPosition( self.dev, posReq)
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "%s, setting the position causes an error" % (self.dev[ 'name'])) 
             utils.ExceptionToLog( e, self.logWidget)
 
@@ -1476,7 +1477,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         try:
             sts = self.dev[ 'proxy'].state()
-        except Exception, e:
+        except Exception as e:
             utils.ExceptionToLog( e, self.logWidget)
             QtGui.QMessageBox.critical(self, 'Error', 
                                        "cb_commands: %s, device is offline" % self.dev[ 'name'], 

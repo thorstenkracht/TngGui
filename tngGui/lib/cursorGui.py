@@ -433,7 +433,7 @@ class CursorGUI( QtGui.QMainWindow):
         if self.scan.x_max != 0.:
             try:
                 self.precision = math.ceil( math.log10(math.fabs(self.scan.x_max/(self.scan.x_max - self.scan.x_min))))
-            except Exception, e:
+            except Exception as e:
                 self.precision = 3
         else:
             self.precision = 3
@@ -475,7 +475,7 @@ class CursorGUI( QtGui.QMainWindow):
         self.w_slider.setValue( self.scan.index)
         
     def setCursorAndSlider( self): 
-        #print "Cursor.setCursorAndSlider: x %s, y %s " %( self.scan.getX( self.scan.index), self.scan.getY( self.scan.index))
+        #print( "Cursor.setCursorAndSlider: x %s, y %s " %( self.scan.getX( self.scan.index), self.scan.getY( self.scan.index)))
         self.tag.configure( x = self.scan.getX( self.scan.index),
                             y = self.scan.getY( self.scan.index))
         self.w_slider.setValue( self.scan.index)
@@ -587,7 +587,7 @@ class CursorGUI( QtGui.QMainWindow):
 
     def cb_slider( self, value): 
         #buttons = QtGui.qApp.mouseButtons()
-        #if buttons == QtCore.Qt.LeftButton: print "left"
+        #if buttons == QtCore.Qt.LeftButton: print( "left")
 
         self.scan.index = value
         self.setCursorAndSlider()

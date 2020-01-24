@@ -14,9 +14,9 @@ def getPosition( dev):
             argout = dev[ 'proxy'].voltage
         else:
             argout = dev[ 'proxy'].position
-    except Exception, e: 
-        #print "getPosition: %s, reading the position causes an error" % (dev[ 'fullName'])
-        #print "%s:" % repr( e)
+    except Exception as e: 
+        #print( "getPosition: %s, reading the position causes an error" % (dev[ 'fullName']))
+        #print( "%s:" % repr( e))
         argout = 123456789.
     return argout 
 
@@ -56,7 +56,7 @@ def calibrate( dev, newPos, logWidget):
         else:
             logWidget.append( "calibrate: failed to identify %s (%s)" % (dev[ 'module'], dev[ 'name']))
 
-    except Exception, e:
+    except Exception as e:
         logWidget.append( "calibrate: failed for %s" % (dev[ 'fullName']))
         ExceptionToLog( e, logWidget)
         return 
@@ -83,7 +83,7 @@ def getSlewRate( dev, logWidget):
         else:
             logWidget.append( "getSlewRate: failed to identify %s (%s)" % (dev[ 'module'], dev[ 'name']))
 
-    except Exception, e:
+    except Exception as e:
         logWidget.append( "getSlewRate: failed to get slewRate/Velocity for %s" % (dev[ 'fullName']))
         ExceptionToLog( e, logWidget)
         return None
@@ -124,7 +124,7 @@ def setSlewRate( dev, slewNew, logWidget):
         else:
             logWidget.append( "setSlewRate: failed to identify %s (%s)" % (dev[ 'module'], dev[ 'name']))
 
-    except Exception, e:
+    except Exception as e:
         logWidget.append( "setSlewRate: failed to set slewRate/Velocity for %s" % (dev[ 'fullName']))
         ExceptionToLog( e, logWidget)
 
@@ -145,7 +145,7 @@ def getUnitLimitMax( dev, logWidget):
                 argout = 1000
             else:
                 argout = dev[ 'proxy'].unitlimitmax
-    except Exception, e:
+    except Exception as e:
         logWidget.append( "getUnlitLimitMax: %s, reading the max-limit causes an error" % (dev[ 'fullName']))
         ExceptionToLog( e, logWidget)
         argout = 0.
@@ -167,7 +167,7 @@ def getUnitLimitMaxString( dev, logWidget):
                 argout = "1000."
             else:
                 argout = "%g" % dev[ 'proxy'].unitlimitmax
-    except Exception, e:
+    except Exception as e:
         logWidget.append( "getUnlitLimitMaxStr: %s, reading the max-limit causes an error" % (dev[ 'fullName']))
         ExceptionToLog( e, logWidget)
         argout = "None"
@@ -189,7 +189,7 @@ def getUnitLimitMin( dev, logWidget):
                 argout = -1000
             else:
                 argout = dev[ 'proxy'].unitlimitmin
-    except Exception, e:
+    except Exception as e:
         logWidget.append( "getUnlitLimitMin: %s, reading the min-limit causes an error" % (dev[ 'fullName']))
         ExceptionToLog( e, logWidget)
         argout = 0.
@@ -211,7 +211,7 @@ def getUnitLimitMinString( dev, logWidget):
                 argout = "-1000."
             else:
                 argout = "%g" % dev[ 'proxy'].unitlimitmin
-    except Exception, e:
+    except Exception as e:
         logWidget.append( "getUnlitLimitMinStr: %s, reading the min-limit causes an error" % (dev[ 'fullName']))
         ExceptionToLog( e, logWidget)
         argout = "None"
@@ -229,8 +229,8 @@ def getCounterValueStr( dev):
             argout = "%g" % dev[ 'proxy'].counts
         else:
             argout = "%g" % dev[ 'proxy'].Value
-    except Exception, e: 
-        print "getCounterValueStr: trouble reading %s, flagging 'offline'" % dev['name']
+    except Exception as e: 
+        print( "getCounterValueStr: trouble reading %s, flagging 'offline'" % dev['name'])
         dev[ 'flagOffline'] = True
         argout = "Offline"
     return argout 
@@ -241,9 +241,9 @@ def getDacValue( dev):
             argout = dev[ 'proxy'].voltage
         else:
             argout = dev[ 'proxy'].value
-    except Exception, e: 
-        #print "getPosition: %s, reading the position causes an error" % (dev[ 'fullName'])
-        #print "%s:" % repr( e)
+    except Exception as e: 
+        #print( "getPosition: %s, reading the position causes an error" % (dev[ 'fullName']))
+        #print( "%s:" % repr( e))
         argout = 123456789.
     return argout 
 
@@ -264,7 +264,7 @@ def getUpperLimit( dev, self):
         else:
             if dev[ 'proxy'].ccwlimit == 1:
                 return True
-    except Exception, e:
+    except Exception as e:
         self.logWidget.append( "getUpperLimit: exception for %s, module %s" % (dev[ 'fullName'], dev[ 'module']))
         self.logWidget.append( "getUpperLimit: %s" % repr( e))
         return False
@@ -280,7 +280,7 @@ def getLowerLimit( dev, self):
         else:
             if dev[ 'proxy'].cwlimit == 1:
                 return True
-    except Exception, e:
+    except Exception as e:
         self.logWidget.append( "getLowerLimit: exception for %s, module %s " % (dev[ 'fullName'], dev[ 'module']))
         self.logWidget.append( "getLowerLimit: %s" % repr( e))
         return False

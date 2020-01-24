@@ -73,7 +73,7 @@ class mainMenu( QtGui.QMainWindow):
         selectedMotors = allMotors
 
         if args.tags and len( args.namePattern) > 0:
-            print "TngGui: specify tags or names"
+            print( "TngGui: specify tags or names")
             return 0
 
         timerName = None
@@ -101,7 +101,7 @@ class mainMenu( QtGui.QMainWindow):
 #                     else:
 #                        selectedMotors.append( dev)
 #        if len( selectedMotors) == 0:
-#            print "TngGui: no matching motors"
+#            print( "TngGui: no matching motors")
 #            return 0
 #        #
 #        # one motor specified: launch the moveMotor widget immediately
@@ -118,7 +118,7 @@ class mainMenu( QtGui.QMainWindow):
 #        #
 #        selectedMotors = allMotors
 #        if len( selectedMotors) == 0:
-#            print "TngGui: no motors found"
+#            print( "TngGui: no motors found")
 #            return 0
 #        mainW = tngGui.lib.tngGuiClasss.mainMenu(timerName, counterName, args)
 #        mainW.show()
@@ -615,7 +615,7 @@ class mainMenu( QtGui.QMainWindow):
         fName = HasyUtils.createScanName( "smm") + ".lis"
         try:
             out = open( fName, "w")
-        except Exception, e:
+        except Exception as e:
             self.logWidget( "Failed to open %s" % fName)
             self.logWidget( repr( e))
             return
@@ -705,7 +705,7 @@ class mainMenu( QtGui.QMainWindow):
         sts = os.system( "evince pyspOutput.pdf &")
 
     def __del__( self):
-        print "the destructor of main()"
+        print( "the destructor of main()")
 
     def cb_clear( self):
         self.logWidget.clear()
@@ -758,7 +758,7 @@ class mainMenu( QtGui.QMainWindow):
         signal.signal( signal.SIGALRM, self.handlerALRM)
 
         for dev in selectedMotors:
-            #print "connecting to", dev[ 'name']
+            #print( "connecting to %s" % dev[ 'name'])
             signal.alarm( 2)
             try:
                 b = utils.QPushButtonTK(self.tr("%s" % dev[ 'name'])) 
@@ -807,8 +807,8 @@ class mainMenu( QtGui.QMainWindow):
 
                 count += 1
                     
-            except utils.TMO, e:
-                print "fillMotorList: failed to connect to", dev[ 'name']
+            except utils.TMO as e:
+                print( "fillMotorList: failed to connect to %s" % dev[ 'name'])
                 del dev
             signal.alarm(0)
         signal.signal( signal.SIGALRM, hndlr)
@@ -1367,7 +1367,7 @@ class mainMenu( QtGui.QMainWindow):
                 #
                 try:
                     sts = dev[ 'proxy'].state()
-                except Exception, e:
+                except Exception as e:
                     dev[ 'w_pos'].setText( "None")
                     dev[ 'w_unitlimitmin'].setText( "None")
                     dev[ 'w_unitlimitmax'].setText( "None")
@@ -1400,7 +1400,7 @@ class mainMenu( QtGui.QMainWindow):
                     dev[ 'w_unitlimitmax'].setStyleSheet( "background-color:%s;" % definitions.RED_ALARM)
                 else:
                     dev[ 'w_unitlimitmax'].setStyleSheet( "background-color:%s;" % definitions.GREY_NORMAL)
-        except utils.TMO, e:
+        except utils.TMO as e:
             self.logWidget.append( "main.cb_refresh: expired, dev %s, ignoring" % dev[ 'name'])
             dev[ 'flagOffline'] = True
             self.updateTimer.start( definitions.TIMEOUT_REFRESH)
@@ -1425,7 +1425,7 @@ class mainMenu( QtGui.QMainWindow):
                 #
                 try:
                     sts = dev[ 'proxy'].state()
-                except Exception, e:
+                except Exception as e:
                     dev[ 'w_value'].setText( "None")
                     continue
                 
@@ -1433,7 +1433,7 @@ class mainMenu( QtGui.QMainWindow):
                 #
                 dev[ 'w_value'].setText( "%d" % dev ['proxy'].Value)
 
-        except utils.TMO, e:
+        except utils.TMO as e:
             self.logWidget.append( "main.cb_refresh: expired, dev %s, ignoring" % dev[ 'name'])
             dev[ 'flagOffline'] = True
             self.updateTimer.start( definitions.TIMEOUT_REFRESH)
@@ -1460,17 +1460,17 @@ class mainMenu( QtGui.QMainWindow):
                 #
                 try:
                     sts = dev[ 'proxy'].state()
-                except Exception, e:
+                except Exception as e:
                     dev[ 'w_counts'].setText( "None")
                     continue
                 try:
                     dev[ 'w_counts'].setText( utils.getCounterValueStr( dev))
-                except Exception, e:
+                except Exception as e:
                     dev[ 'w_counts'].setText( "None")
-                    print "refreshTimerCounters: trouble reading Value of %s" % dev[ 'name']
+                    print( "refreshTimerCounters: trouble reading Value of %s" % dev[ 'name'])
                     
 
-        except utils.TMO, e:
+        except utils.TMO as e:
             self.logWidget.append( "main.cb_refresh: expired, dev %s, ignoring" % dev[ 'name'])
             dev[ 'flagOffline'] = True
             self.updateTimer.start( definitions.TIMEOUT_REFRESH)
@@ -1497,17 +1497,17 @@ class mainMenu( QtGui.QMainWindow):
                 #
                 try:
                     sts = dev[ 'proxy'].state()
-                except Exception, e:
+                except Exception as e:
                     dev[ 'w_counts'].setText( "None")
                     continue
                 try:
                     dev[ 'w_counts'].setText( utils.getCounterValueStr( dev))
-                except Exception, e:
+                except Exception as e:
                     dev[ 'w_counts'].setText( "None")
-                    print "refreshTimerCounters: trouble reading Value of %s" % dev[ 'name']
+                    print( "refreshTimerCounters: trouble reading Value of %s" % dev[ 'name'])
                     
 
-        except utils.TMO, e:
+        except utils.TMO as e:
             self.logWidget.append( "main.cb_refresh: expired, dev %s, ignoring" % dev[ 'name'])
             dev[ 'flagOffline'] = True
             self.updateTimer.start( definitions.TIMEOUT_REFRESH)
@@ -1533,7 +1533,7 @@ class mainMenu( QtGui.QMainWindow):
                 #
                 try:
                     sts = dev[ 'proxy'].state()
-                except Exception, e:
+                except Exception as e:
                     dev[ 'w_value'].setText( "None")
                     continue
                 #
@@ -1541,7 +1541,7 @@ class mainMenu( QtGui.QMainWindow):
                 #
                 dev[ 'w_value'].setText( "%g" % utils.getDacValue( dev))
 
-        except utils.TMO, e:
+        except utils.TMO as e:
             self.logWidget.append( "main.cb_refresh: expired, dev %s, ignoring" % dev[ 'name'])
             dev[ 'flagOffline'] = True
             self.updateTimer.start( definitions.TIMEOUT_REFRESH)
@@ -1566,14 +1566,14 @@ class mainMenu( QtGui.QMainWindow):
         pass
 
     def handlerALRM( signum, frame, arg3):
-        #print "handlerALRM: called with signal", signum
+        #print( "handlerALRM: called with signal %d" % signum)
         raise utils.TMO( "tmo-excepttion")
 
     def make_cb_resetCounter( self, dev, logWidget):
         def cb():
             try:
                 sts = dev[ 'proxy'].state()
-            except Exception, e:
+            except Exception as e:
                 utils.ExceptionToLog( e, self.logWidget)
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "make_cb_oreg: %s, device is offline" % dev[ 'name'], 
@@ -1582,9 +1582,9 @@ class mainMenu( QtGui.QMainWindow):
 
             try:
                 dev[ 'proxy'].reset()
-            except Exception, e:
-                print "Trouble to reset %s" % dev[ 'name']
-                print repr( e)
+            except Exception as e:
+                print( "Trouble to reset %s" % dev[ 'name'])
+                print( repr( e))
 
         return cb
 
@@ -1592,7 +1592,7 @@ class mainMenu( QtGui.QMainWindow):
         def cb():
             try:
                 sts = dev[ 'proxy'].state()
-            except Exception, e:
+            except Exception as e:
                 utils.ExceptionToLog( e, self.logWidget)
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "make_cb_oreg: %s, device is offline" % dev[ 'name'], 
@@ -1611,7 +1611,7 @@ class mainMenu( QtGui.QMainWindow):
         def cb():
             try:
                 sts = dev[ 'proxy'].state()
-            except Exception, e:
+            except Exception as e:
                 utils.ExceptionToLog( e, self.logWidget)
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "make_cb_oreg: %s, device is offline" % dev[ 'name'], 
@@ -1629,7 +1629,7 @@ class mainMenu( QtGui.QMainWindow):
         def cb():
             try:
                 sts = dev[ 'proxy'].state()
-            except Exception, e:
+            except Exception as e:
                 utils.ExceptionToLog( e, self.logWidget)
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "make_cb_oreg: %s, device is offline" % dev[ 'name'], 
@@ -1647,7 +1647,7 @@ class mainMenu( QtGui.QMainWindow):
         def cb():
             try:
                 sts = dev[ 'proxy'].state()
-            except Exception, e:
+            except Exception as e:
                 utils.ExceptionToLog( e, self.logWidget)
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "make_cb_oreg: %s, device is offline" % dev[ 'name'], 
@@ -1671,7 +1671,7 @@ class mainMenu( QtGui.QMainWindow):
                 
             try:
                 sts = dev[ 'proxy'].state()
-            except Exception, e:
+            except Exception as e:
                 utils.ExceptionToLog( e, self.logWidget)
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "cb_move: %s, device is offline" % dev[ 'name'], 
@@ -1687,7 +1687,7 @@ class mainMenu( QtGui.QMainWindow):
         def cb():
             try:
                 sts = dev[ 'proxy'].state()
-            except Exception, e:
+            except Exception as e:
                 utils.ExceptionToLog( e, self.logWidget)
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "cb_attributes: %s, device is offline" % dev[ 'name'], 
@@ -1706,7 +1706,7 @@ class mainMenu( QtGui.QMainWindow):
         def cb():
             try:
                 sts = dev[ 'proxy'].state()
-            except Exception, e:
+            except Exception as e:
                 utils.ExceptionToLog( e, self.logWidget)
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "cb_commands: %s, device is offline" % dev[ 'name'], 
@@ -1744,7 +1744,7 @@ class mainMenu( QtGui.QMainWindow):
 
             try:
                 sts = dev[ 'proxy'].state()
-            except Exception, e:
+            except Exception as e:
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "cb_mb3: %s, device is offline" % dev[ 'name'], 
                                            QtGui.QMessageBox.Ok)
@@ -2251,7 +2251,7 @@ LogMacroDir: directory where the log will be stored<br>\
     def cb_abortMacro( self): 
         try:
             door = PyTango.DeviceProxy( HasyUtils.getLocalDoorNames()[0])
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "cb_abortMacro: Failed to create proxy to Door" )
             self.logWidget.append( repr( e))
             return 
@@ -2291,7 +2291,7 @@ def findAllMotors( args):
     allMotors = []
     if allDevices:
         for dev in allDevices:
-            if dev.has_key( 'sardananame'):
+            if 'sardananame' in dev:
                 dev[ 'name'] = dev[ 'sardananame']
 
             if (dev['module'].lower() == 'motor_tango' or 
@@ -2302,7 +2302,7 @@ def findAllMotors( args):
                 #
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    #print "findAllMotors: No proxy to %s, ignoring this device" % dev[ 'name']
+                    #print( "findAllMotors: No proxy to %s, ignoring this device" % dev[ 'name'])
                     continue
                 dev[ 'flagPseudoMotor'] = False
                 dev[ 'flagPoolMotor'] = False
@@ -2331,7 +2331,7 @@ def findAllMotors( args):
             if name == dev[ 'name']:
                 break
         else:
-            #print "name NOT in motorDict", name, "\n", repr( poolDct)
+            #print( "name NOT in motorDict %s \n %s" % (name, repr( poolDct)))
             #
             # source: haso107d1:10000/pm/e6cctrl/1/Position
             #
@@ -2361,7 +2361,7 @@ def findAllMotors( args):
 
             dev[ 'proxy'] = createProxy( dev)
             if dev[ 'proxy'] is None:
-                #print "findAllMotors: No proxy to %s, ignoring this device (2)" % dev[ 'name']
+                #print( "findAllMotors: No proxy to %s, ignoring this device (2)" % dev[ 'name'])
                 continue
             poolMotors.append( dev)
 
@@ -2392,7 +2392,7 @@ def findAllCounters( args):
     allCounters = []
     if allDevices:
         for dev in allDevices:
-            if dev.has_key( 'sardananame'):
+            if 'sardananame' in dev:
                 dev[ 'name'] = dev[ 'sardananame']
                 
             if (dev['module'].lower() == 'tangoattributectctrl'):
@@ -2453,13 +2453,13 @@ def findAllTimers( args):
     allTimers = []
     if allDevices:
         for dev in allDevices:
-            if dev.has_key( 'sardananame'):
+            if 'sardananame' in dev:
                 dev[ 'name'] = dev[ 'sardananame']
 
             if (dev['type'].lower() == 'timer'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print "findAllTimers: No proxy to %s, ignoring this device" % dev[ 'name']
+                    print( "findAllTimers: No proxy to %s, ignoring this device" % dev[ 'name'])
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2491,13 +2491,13 @@ def findAllIORegs( args):
     allORegs = []
     if allDevices:
         for dev in allDevices:
-            if dev.has_key( 'sardananame'):
+            if 'sardananame' in dev:
                 dev[ 'name'] = dev[ 'sardananame']
 
             if (dev['type'].lower() == 'input_register'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print "findAllIORegs: No proxy to %s, ignoring this device" % dev[ 'name']
+                    print( "findAllIORegs: No proxy to %s, ignoring this device" % dev[ 'name'])
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2506,7 +2506,7 @@ def findAllIORegs( args):
             if (dev['type'].lower() == 'output_register'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print "findIORegs: No proxy to %s, ignoring this device" % dev[ 'name']
+                    print( "findIORegs: No proxy to %s, ignoring this device" % dev[ 'name'])
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2540,14 +2540,14 @@ def findAllAdcDacs( args):
     allDacs = []
     if allDevices:
         for dev in allDevices:
-            if dev.has_key( 'sardananame'):
+            if 'sardananame' in dev:
                 dev[ 'name'] = dev[ 'sardananame']
 
             if (dev['module'].lower() == 'tip830' or \
                 dev['module'].lower() == 'tip850adc'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print "findAllAdcDacs: No proxy to %s, ignoring this device" % dev[ 'name']
+                    print( "findAllAdcDacs: No proxy to %s, ignoring this device" % dev[ 'name'])
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2556,7 +2556,7 @@ def findAllAdcDacs( args):
             if (dev['module'].lower() == 'vfcadc'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print "findAllAdcDacs: No proxy to %s, ignoring this device" % dev[ 'name']
+                    print( "findAllAdcDacs: No proxy to %s, ignoring this device" % dev[ 'name'])
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2566,7 +2566,7 @@ def findAllAdcDacs( args):
                 dev['module'].lower() == 'tip850dac'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print "findAdcDacs: No proxy to %s, ignoring this device" % dev[ 'name']
+                    print( "findAdcDacs: No proxy to %s, ignoring this device" % dev[ 'name'])
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2604,13 +2604,13 @@ def findAllMCAs( args):
     #
     allMCAs = []
     for dev in allDevices:
-        if dev.has_key( 'sardananame'):
+        if 'sardananame' in dev:
             dev[ 'name'] = dev[ 'sardananame']
 
         if (dev['module'].lower() == 'mca_8701'):
             dev[ 'proxy'] = createProxy( dev)
             if dev[ 'proxy'] is None:
-                print "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name']
+                print( "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name'])
                 continue
             dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
             dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2646,13 +2646,13 @@ def findAllCameras( args):
     #
     allCameras = []
     for dev in allDevices:
-        if dev.has_key( 'sardananame'):
+        if 'sardananame' in dev:
             dev[ 'name'] = dev[ 'sardananame']
 
         if dev['module'].lower() in cameraNames: 
             dev[ 'proxy'] = createProxy( dev)
             if dev[ 'proxy'] is None:
-                print "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name']
+                print( "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name'])
                 continue
             dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
             dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2674,13 +2674,13 @@ def findAllPiLCModules( args):
     #
     allPiLCModules = []
     for dev in allDevices:
-        if dev.has_key( 'sardananame'):
+        if 'sardananame' in dev:
             dev[ 'name'] = dev[ 'sardananame']
 
         if dev['module'].lower() in PiLCModuleNames: 
             dev[ 'proxy'] = createProxy( dev)
             if dev[ 'proxy'] is None:
-                print "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name']
+                print( "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name'])
                 continue
             dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
             dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2702,13 +2702,13 @@ def findAllModuleTangos( args):
     #
     allModuleTangos = []
     for dev in allDevices:
-        if dev.has_key( 'sardananame'):
+        if 'sardananame' in dev:
             dev[ 'name'] = dev[ 'sardananame']
 
         if dev['module'].lower() == 'module_tango':
             dev[ 'proxy'] = createProxy( dev)
             if dev[ 'proxy'] is None:
-                print "findModuleTangos: No proxy to %s, ignoring this device" % dev[ 'name']
+                print( "findModuleTangos: No proxy to %s, ignoring this device" % dev[ 'name'])
                 continue
             dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
             dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2731,13 +2731,13 @@ def findAllMGs( args):
     #
     allMGs = []
     for dev in allDevices:
-        if dev.has_key( 'sardananame'):
+        if 'sardananame' in dev:
             dev[ 'name'] = dev[ 'sardananame']
 
         if dev['type'].lower() == 'measurement_group':
             dev[ 'proxy'] = createProxy( dev)
             if dev[ 'proxy'] is None:
-                print "findAllMGs: No proxy to %s, ignoring this device" % dev[ 'name']
+                print( "findAllMGs: No proxy to %s, ignoring this device" % dev[ 'name'])
                 continue
             dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
             dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -2763,7 +2763,7 @@ def findAllMGs( args):
         dev[ 'hostname'] = "%s:10000" % os.getenv( "TANGO_HOST")
         dev[ 'proxy'] = createProxy( dev)
         if dev[ 'proxy'] is None:
-            print "findAllMGs: No proxy to %s, ignoring this device" % dev[ 'name']
+            print( "findAllMGs: No proxy to %s, ignoring this device" % dev[ 'name'])
             continue
         allMGs.append( dev)
 
@@ -2772,7 +2772,7 @@ def findAllMGs( args):
 def createProxy( dev):
 
     try:
-        #print "createProxy %s/%s, %s" % (dev[ 'hostname'], dev[ 'device'], dev[ 'name'])
+        #print( "createProxy %s/%s, %s" % (dev[ 'hostname'], dev[ 'device'], dev[ 'name']))
         #
         #  <device>p08/sis3302/exp.01/1</device>
         #
@@ -2787,17 +2787,17 @@ def createProxy( dev):
         #
         startTime = time.time()
         sts = proxy.state() 
-    except Exception, e:
-        print "createProxy: no proxy to %s, flagging 'offline' " % dev[ 'name']   
+    except Exception as e:
+        print( "createProxy: no proxy to %s, flagging 'offline' " % dev[ 'name']   )
         dev[ 'flagOffline'] = True
         #for arg in e.args:
         #    if hasattr( arg, 'desc'):
-        #        print " desc:   %s" % arg.desc 
-        #        print " origin: %s" % arg.origin
-        #        print " reason: %s" % arg.reason
-        #        print ""
+        #        print( " desc:   %s" % arg.desc )
+        #        print( " origin: %s" % arg.origin)
+        #        print( " reason: %s" % arg.reason)
+        #        print( "")
         #    else:
-        #        print repr( e)
+        #        print( repr( e))
         proxy = None
 
     return proxy

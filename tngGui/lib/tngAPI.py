@@ -5,6 +5,7 @@ import PyTango
 import math, os
 import definitions, utils, HasyUtils
 import json
+import tngGui.lib.helpBox as helpBox
 
 class deviceAttributes( QtGui.QMainWindow):
     def __init__( self, dev, logWidget, parent = None):
@@ -40,11 +41,19 @@ class deviceAttributes( QtGui.QMainWindow):
         self.fileMenu.addAction( self.exitAction)
 
 
-        if True or self.dev[ 'module'].lower() == "oms58":
-            self.miscMenu = self.menuBar.addMenu('&Misc')
-            self.blackBoxAction = QtGui.QAction( 'BlackBox', self)        
-            self.blackBoxAction.triggered.connect( self.cb_blackBox)
-            self.miscMenu.addAction( self.blackBoxAction)
+
+        self.miscMenu = self.menuBar.addMenu('&Misc')
+        #
+        # 26.9.2019 added Blackbox for all devices for Wolfgang Caliebe, Pilatus
+        #
+        self.blackBoxAction = QtGui.QAction( 'BlackBox', self)        
+        self.blackBoxAction.triggered.connect( self.cb_blackBox)
+        self.miscMenu.addAction( self.blackBoxAction)
+
+        if self.dev[ 'module'].lower() == "oms58":
+            self.saveAttrAction = QtGui.QAction( 'Save Attrs', self)        
+            self.saveAttrAction.triggered.connect( self.cb_saveAttr)
+            self.miscMenu.addAction( self.saveAttrAction)
 
         #
         # the activity menubar: help and activity
@@ -367,7 +376,7 @@ class deviceAttributes( QtGui.QMainWindow):
 
         try: 
             pool = PyTango.DeviceProxy( localPools[0])
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "cb_deleteMg: failed to create proxy to %s" % localPools[0])
             return 
 
@@ -431,7 +440,7 @@ class deviceAttributes( QtGui.QMainWindow):
 
         try: 
             stst = self.dev[ 'proxy'].state()
-        except Exception, e:
+        except Exception as e:
             self.attrDct[ 'State'][ "w_value"].setText( "Offline")
             self.attrDct[ 'State'][ "w_value"].setStyleSheet( "background-color:%s;" % definitions.RED_ALARM)
             return 
@@ -467,7 +476,7 @@ class deviceAttributes( QtGui.QMainWindow):
 
             try: 
                 a = self.dev[ 'proxy'].read_attribute( attrInfo.name)
-            except Exception, e:
+            except Exception as e:
                 w_value.setText( "Failed")
                 continue
             #
@@ -529,7 +538,7 @@ class deviceAttributes( QtGui.QMainWindow):
         try:
             roiArr2D = self.dev[ 'proxy'].rois
             NbRois = self.dev[ 'proxy'].NbRois
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "getROI: failed for %s" % (dev[ 'fullName']))
             utils.ExceptionToLog( e, logWidget)
             return 
@@ -668,6 +677,20 @@ class deviceAttributes( QtGui.QMainWindow):
             if line.find('Empty') == -1:
                 self.logWidget.append( line)
 
+        
+    def cb_saveAttr( self):
+        res = HasyUtils.saveAttrsAsPython( alias = self.dev[ 'name'], module = self.dev[ 'module'])
+        if res is None:
+            self.logWidget.append( "Failed to create attr-file")
+        else:
+            self.logWidget.append( "Created %s" % res)
+            editor = os.getenv( "EDITOR")
+            if editor is None:
+                editor = "emacs"
+            os.system( "%s %s&" % (editor, res))
+
+        return 
+
     def cb_applyDeviceAttributes( self):
         count = 0
         #
@@ -713,7 +736,7 @@ class deviceAttributes( QtGui.QMainWindow):
             temp = line.text()
             try:
                 reply = self.dev[ 'proxy'].command_inout( "WriteRead", str(temp))
-            except Exception, e:
+            except Exception as e:
                 self.logWidget.append( "%s: %s causes an error" % (self.dev[ 'name'], str(temp)))
                 utils.ExceptionToLog( e, self.logWidget)
                 line.clear()
@@ -730,13 +753,13 @@ class deviceAttributes( QtGui.QMainWindow):
                                                'YesNo', 
                                                "Calibrate %s/%s from %g to %s" % (self.dev[ 'hostname'], 
                                                                                   self.dev[ 'device'], 
-                                                                                  getPosition( self.dev), line.text()), 
+                                                                                  utils.getPosition( self.dev), line.text()), 
                                                QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
             if reply != QtGui.QMessageBox.Yes:
                 self.logWidget.append( "Calibration aborted")
                 line.clear()
                 return 
-            definitions.calibrate( self.dev, float( line.text()), self.logWidget)
+            utils.calibrate( self.dev, float( line.text()), self.logWidget)
             line.clear()
             return 
 
@@ -767,7 +790,7 @@ class deviceAttributes( QtGui.QMainWindow):
                 return 
             try:
                 self.dev[ 'proxy'].command_inout( "SetStepRegister", int( line.text()))
-            except Exception, e:
+            except Exception as e:
                 self.logWidget.append( "%s: failed to SetStepRegister to %d" % 
                                        (self.dev[ 'name'], int( line.text())))
                 utils.ExceptionToLog( e, self.logWidget)
@@ -796,8 +819,8 @@ class deviceAttributes( QtGui.QMainWindow):
                  attrInfo.data_type == PyTango.CmdArgType.DevUShort:
                 self.dev[ 'proxy'].write_attribute( attrInfo.name, int(temp))
             else:
-                print "dataType not identified", attrInfo.data_type
-        except Exception, e:
+                print( "dataType not identified %s" % attrInfo.data_type)
+        except Exception as e:
             self.logWidget.append( "%s: failed to set attr. %s to %s" % 
                                    (self.dev[ 'name'], attrInfo.name, repr( temp)))
             utils.ExceptionToLog( e, self.logWidget)
@@ -811,7 +834,7 @@ class deviceAttributes( QtGui.QMainWindow):
             #
             roiArr = self.dev[ 'proxy'].rois
             NbRois = self.dev[ 'proxy'].NbRois
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "setROI: failed for %s" % (dev[ 'fullName']))
             utils.ExceptionToLog( e, logWidget)
             return 
@@ -1044,9 +1067,9 @@ class deviceCommands( QtGui.QMainWindow):
                     lst = [int( n) for n in line.text().split( ',')]
                     reply = self.dev[ 'proxy'].command_inout( commandInfo.cmd_name, lst)
                 else:
-                    print "make_cb_command: need to implement %s" % repr( commandInfo.in_type)
+                    print( "make_cb_command: need to implement %s" % repr( commandInfo.in_type))
                     return
-            except Exception, e:
+            except Exception as e:
                 utils.ExceptionToLog( e, self.logWidget)
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "make_cb_command: %s, %s" % (self.dev[ 'name'], repr(e)), 
@@ -1160,7 +1183,7 @@ class deviceCommands( QtGui.QMainWindow):
 
         try: 
             stst = self.dev[ 'proxy'].state()
-        except Exception, e:
+        except Exception as e:
             self.attrDct[ 'State'][ "w_value"].setText( "Offline")
             self.attrDct[ 'State'][ "w_value"].setStyleSheet( "background-color:%s;" % definitions.RED_ALARM)
             return 
@@ -1196,7 +1219,7 @@ class deviceCommands( QtGui.QMainWindow):
 
             try: 
                 a = self.dev[ 'proxy'].read_attribute( attrInfo.name)
-            except Exception, e:
+            except Exception as e:
                 w_value.setText( "Failed")
                 continue
             #
@@ -1262,7 +1285,7 @@ class deviceCommands( QtGui.QMainWindow):
         try:
             roiArr2D = self.dev[ 'proxy'].rois
             NbRois = self.dev[ 'proxy'].NbRois
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "getROI: failed for %s" % (dev[ 'fullName']))
             utils.ExceptionToLog( e, logWidget)
             return 
@@ -1446,7 +1469,7 @@ class deviceCommands( QtGui.QMainWindow):
             temp = line.text()
             try:
                 reply = self.dev[ 'proxy'].command_inout( "WriteRead", str(temp))
-            except Exception, e:
+            except Exception as e:
                 self.logWidget.append( "%s: %s causes an error" % (self.dev[ 'name'], str(temp)))
                 utils.ExceptionToLog( e, self.logWidget)
                 line.clear()
@@ -1469,7 +1492,7 @@ class deviceCommands( QtGui.QMainWindow):
                 self.logWidget.append( "Calibration aborted")
                 line.clear()
                 return 
-            definitions.calibrate( self.dev, float( line.text()), self.logWidget)
+            utils.calibrate( self.dev, float( line.text()), self.logWidget)
             line.clear()
             return 
 
@@ -1500,7 +1523,7 @@ class deviceCommands( QtGui.QMainWindow):
                 return 
             try:
                 self.dev[ 'proxy'].command_inout( "SetStepRegister", int( line.text()))
-            except Exception, e:
+            except Exception as e:
                 self.logWidget.append( "%s: failed to SetStepRegister to %d" % 
                                        (self.dev[ 'name'], int( line.text())))
                 utils.ExceptionToLog( e, self.logWidget)
@@ -1531,8 +1554,8 @@ class deviceCommands( QtGui.QMainWindow):
             elif attrInfo.data_type == PyTango.CmdArgType.DevUShort:
                 self.dev[ 'proxy'].write_attribute( attrInfo.name, int(temp))
             else:
-                print "dataType not identified", attrInfo.data_type
-        except Exception, e:
+                print( "dataType not identified %s" % attrInfo.data_type)
+        except Exception as e:
             self.logWidget.append( "%s: failed to set attr. %s to %s" % 
                                    (self.dev[ 'name'], attrInfo.name, repr( temp)))
             utils.ExceptionToLog( e, self.logWidget)
@@ -1547,7 +1570,7 @@ class deviceCommands( QtGui.QMainWindow):
             #
             roiArr = self.dev[ 'proxy'].rois
             NbRois = self.dev[ 'proxy'].NbRois
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "setROI: failed for %s" % (dev[ 'fullName']))
             utils.ExceptionToLog( e, logWidget)
             return 
@@ -1681,7 +1704,7 @@ class timerWidget( QtGui.QMainWindow):
         def cb():
             try:
                 sts = dev[ 'proxy'].state()
-            except Exception, e:
+            except Exception as e:
                 utils.ExceptionToLog( e, self.logWidget)
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "make_cb_oreg: %s, device is offline" % dev[ 'name'], 
@@ -1700,7 +1723,7 @@ class timerWidget( QtGui.QMainWindow):
         def cb():
             try:
                 sts = dev[ 'proxy'].state()
-            except Exception, e:
+            except Exception as e:
                 utils.ExceptionToLog( e, self.logWidget)
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "make_cb_oreg: %s, device is offline" % dev[ 'name'], 
@@ -2091,7 +2114,7 @@ class motorEncAttributes( QtGui.QMainWindow):
                attr.lower() != 'steppositioncontroller':
                 try:
                     attrInfo = self.dev[ 'proxy'].get_attribute_config( attr.lower())
-                except Exception, e:
+                except Exception as e:
                     logWidget.append( "motorEncAttributes: failed to access %s" % (dev[ 'fullName']))
                     utils.ExceptionToLog( e, logWidget)
                     self.cb_closeMotorEncAttr
@@ -2189,7 +2212,7 @@ class motorEncAttributes( QtGui.QMainWindow):
 
         try: 
             stst = self.dev[ 'proxy'].state()
-        except Exception, e:
+        except Exception as e:
             self.attrDct[ 'State'][ "w_value"].setText( "Offline")
             self.attrDct[ 'State'][ "w_value"].setStyleSheet( "background-color:%s;" % definitions.RED_ALARM)
             return 
@@ -2214,7 +2237,7 @@ class motorEncAttributes( QtGui.QMainWindow):
                     continue
             try:
                 a = self.dev[ 'proxy'].read_attribute( attr)
-            except Exception, e:
+            except Exception as e:
                 self.logWidget.append( "%s: failed to read attr. %s" % 
                                        (self.dev[ 'name'], attr))
                 utils.ExceptionToLog( e, self.logWidget)
@@ -2443,7 +2466,7 @@ The closed loop is active after the next move.\
                 
             try:
                 self.dev[ 'proxy'].movehome()
-            except Exception, e:
+            except Exception as e:
                 self.logWidget.append( "")
                 self.logWidget.append( "%s: homing failed" % (self.dev[ 'name']))
                 utils.ExceptionToLog( e, self.logWidget)
@@ -2470,7 +2493,7 @@ The closed loop is active after the next move.\
         steps = (unitPos - homePos)*conv
         try:
             self.dev[ 'proxy'].command_inout( "SetStepRegister", steps)
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "%s: failed to SetStepRegister to %d" % 
                                    (self.dev[ 'name'], steps))
             utils.ExceptionToLog( e, self.logWidget)
@@ -2511,8 +2534,8 @@ The closed loop is active after the next move.\
             elif attrInfo.data_type == PyTango.CmdArgType.DevString:
                 self.dev[ 'proxy'].write_attribute( attr, temp)
             else:
-                print "dataType not identified", attrInfo.data_type
-        except Exception, e:
+                print( "dataType not identified %s" % attrInfo.data_type)
+        except Exception as e:
             self.logWidget.append( "%s: failed to set attr. %s to %s" % 
                                    (self.dev[ 'name'], attr, repr( temp)))
             utils.ExceptionToLog( e, self.logWidget)
@@ -2537,7 +2560,7 @@ class motorZmxAttributes( QtGui.QMainWindow):
         try:
             self.zmx = PyTango.DeviceProxy( "%s" % nameZMX)
             self.zmx.state()
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "%s, failed to create proxy" % nameZMX)
             utils.ExceptionToLog( e, self.logWidget)
 
@@ -2696,7 +2719,7 @@ class motorZmxAttributes( QtGui.QMainWindow):
 
         try: 
             stst = self.zmx.state()
-        except Exception, e:
+        except Exception as e:
             self.attrDct[ 'State'][ "w_value"].setText( "Offline")
             self.attrDct[ 'State'][ "w_value"].setStyleSheet( "background-color:%s;" % definitions.RED_ALARM)
             return 
@@ -2833,9 +2856,9 @@ class motorZmxAttributes( QtGui.QMainWindow):
             elif attrInfo.data_type == PyTango.CmdArgType.DevString:
                 self.zmx.write_attribute( attr, temp)
             else:
-                print "dataType not identified", attrInfo.data_type
+                print( "dataType not identified %s" % attrInfo.data_type)
 
-        except Exception, e:
+        except Exception as e:
             self.logWidget.append( "%s: failed to set attr. %s to %s" % 
                                    (self.dev[ 'name'], attr, repr( temp)))
             self.logWidget.append( "%s" % repr( e)) 

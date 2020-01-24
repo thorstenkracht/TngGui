@@ -61,7 +61,7 @@ setup( name="python-tnggui",
        #
        # beware: MANIFEST somehow memorizes the script names (can be deleted)
        #
-       scripts = [ 'tngGui/TngGui.py',
+       scripts = [ 'tngGui/bin/TngGui.py',
                    ],
        packages = ['tngGui',
                    'tngGui/lib', 
