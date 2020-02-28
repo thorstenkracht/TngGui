@@ -2,8 +2,13 @@
 '''
 this module actracts Spectra, PySpectra
 '''
-import Spectra
 import PySpectra as pysp
+
+try: 
+    import Spectra
+    spectraInstalled = True
+except: 
+    spectraInstalled = False
 
 lineColorArr = [ 
     'RED', 
@@ -23,6 +28,9 @@ def setSpectra( flag):
     global useSpectra
     
     if flag:
+        if not spectraInstalled: 
+            print( "*** IfcGraPysp.setSpectra: spectra is not installed")
+            sys.exit( 255)
         useSpectra = True
     else:
         useSpectra = False
@@ -32,7 +40,7 @@ def getSpectra():
     return useSpectra
  
 def cls():
-    if useSpectra:
+    if spectraInstalled and useSpectra:
         Spectra.gra_command( "cls/graphic")
     else:
         pysp.cls()
@@ -40,7 +48,7 @@ def cls():
 
 def close(): 
 
-    if useSpectra:
+    if spectraInstalled and useSpectra:
         pass
     else:
         pysp.close()
@@ -51,7 +59,7 @@ def createHardCopy( printer = None, flagPrint = False, format = 'DINA4'):
     create postscript/pdf file and send it to the printer
     '''
     fName = None
-    if useSpectra:
+    if spectraInstalled and useSpectra:
         Spectra.gra_command(" set 0.1/border=1")
         Spectra.gra_command(" postscript/%s/redisplay/nolog/nocon/print/lp=%s" % (format, prnt))
         Spectra.gra_command(" set 0.1/border=0")
@@ -68,7 +76,7 @@ def createHardCopy( printer = None, flagPrint = False, format = 'DINA4'):
 
 def deleteScan( scan): 
     
-    if useSpectra:
+    if spectraInstalled and useSpectra:
         del scan
     else: 
         pysp.delete( [scan.name])
@@ -78,7 +86,7 @@ def deleteScan( scan):
 
 def writeFile( nameGQE):
 
-    if useSpectra:
+    if spectraInstalled and useSpectra:
         Spectra.gra_command( "write/fio %s" % nameGQE)
     else:
         pysp.write( [nameGQE])
@@ -87,7 +95,7 @@ def writeFile( nameGQE):
 
 def Scan( **hsh):
 
-    if useSpectra:
+    if spectraInstalled and useSpectra:
         scan = Spectra.SCAN( name = hsh[ 'name'],
                              start = hsh[ 'start'], 
                              stop = hsh[ 'stop'],

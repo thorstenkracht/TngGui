@@ -3,9 +3,12 @@
 from taurus.external.qt import QtGui, QtCore 
 import PyTango
 import math, time, sys, os
-import definitions, utils, HasyUtils, Spectra
+import definitions, utils, HasyUtils
 import tngAPI, cursorGui
 import IfcGraPysp
+import tngGui.lib.deviceAttributes as deviceAttributes
+import tngGui.lib.deviceProperties as deviceProperties
+import tngGui.lib.deviceCommands as deviceCommands
 import defineSignal
 import PySpectra.pySpectraGuiClass
 
@@ -1470,7 +1473,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         # 
         # remove 'self.' to allow for one widget only
         # 
-        self.w_attr = tngAPI.deviceAttributes( self.dev, self.logWidget, self)
+        self.w_attr = deviceAttributes.deviceAttributes( self.dev, self.logWidget, self)
         self.w_attr.show()
 
     def cb_launchCommand( self):
@@ -1487,14 +1490,14 @@ Btw: Key_Up/Down change the slew rate. <br>"
         # 
         # remove 'self.' to allow for one widget only
         # 
-        self.w_commands = tngAPI.deviceCommands( self.dev, self.logWidget, self)
+        self.w_commands = deviceCommands.deviceCommands( self.dev, self.logWidget, self)
         self.w_commands.show()
         return 
 
 
     def cb_launchProp( self):
 
-        self.w_prop = tngAPI.deviceProperties( self.dev, self.logWidget, self)
+        self.w_prop = deviceProperties.deviceProperties( self.dev, self.logWidget, self)
         self.w_prop.show()
 
 
@@ -1505,11 +1508,11 @@ Btw: Key_Up/Down change the slew rate. <br>"
                                        "launchEncAttr: %s, device is offline" % self.dev[ 'name'], 
                                        QtGui.QMessageBox.Ok)
             return
-        self.w_encAttr = tngAPI.motorEncAttributes( self.dev, self.logWidget, self)
+        self.w_encAttr = deviceAttributes.motorEncAttributes( self.dev, self.logWidget, self)
         self.w_encAttr.show()
 
 
     def cb_launchZmxAttr( self):
 
-        self.w_zmxAttr = tngAPI.motorZmxAttributes( self.dev, self.logWidget, self)
+        self.w_zmxAttr = deviceAttributes.motorZmxAttributes( self.dev, self.logWidget, self)
         self.w_zmxAttr.show()

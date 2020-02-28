@@ -11,6 +11,10 @@ import tngGui.lib.helpBox as helpBox
 import tngGui.lib.defineSignal as defineSignal 
 import tngGui.lib.moveMotor as moveMotor
 import tngGui.lib.tngAPI as tngAPI
+import tngGui.lib.deviceAttributes as deviceAttributes
+import tngGui.lib.deviceProperties as deviceProperties
+import tngGui.lib.deviceCommands as deviceCommands
+import tngGui.lib.macroServerIfc as macroServerIfc
 import tngGui.lib.utils as utils
 import tngGui.lib.IfcGraPysp as IfcGraPysp
 import tngGui.lib.definitions as definitions
@@ -47,12 +51,27 @@ modulesRoiCounters = ['mca8715roi',
                       'mythenroi']
 
 
+def matchTags( tags, cliTags): 
+    '''
+    tags <tags>user</tags> 
+    cliTags -t user,expert
+    '''
+    lstTags = tags.split( ',')
+    lstCliTags = cliTags.split( ',')
+    
+    for tag in lstTags: 
+        for cliTag in lstCliTags: 
+            if tag.upper() == cliTag.upper():
+                #print( "+++matchTags %s %s -> True " % (repr( tags), repr( cliTags)))
+                return True
+    #print( "+++matchTags %s %s -> False " % (repr( tags), repr( cliTags)))
+    return False
 
 class mainMenu( QtGui.QMainWindow):
     '''
     the main class of the TngTool application
     '''
-    def __init__( self, args = None, parent = None):
+    def __init__( self, args = None, app = None, parent = None):
         super( mainMenu, self).__init__( parent)
         self.setWindowTitle( "TngGui")
 
@@ -74,7 +93,7 @@ class mainMenu( QtGui.QMainWindow):
 
         if args.tags and len( args.namePattern) > 0:
             print( "TngGui: specify tags or names")
-            return 0
+            sys.exit( 255)
 
         timerName = None
         counterName = None
@@ -123,6 +142,7 @@ class mainMenu( QtGui.QMainWindow):
 #        mainW = tngGui.lib.tngGuiClasss.mainMenu(timerName, counterName, args)
 #        mainW.show()
 
+        self.app = app
 
         self.timerName = timerName
         self.counterName = counterName
@@ -135,6 +155,19 @@ class mainMenu( QtGui.QMainWindow):
         self.w_timer = None
         self.pyspGui = None
         self.move( 700, 20)
+
+        if not os.access( "/etc/tangorc", os.R_OK): 
+            QtGui.QMessageBox.critical(self, 'Error', 
+                                       "/etc/tangorc does not exist", QtGui.QMessageBox.Ok)
+            raise ValueError( "tngGuiClass no /etc/tangorc")
+
+        ret = os.popen( "grep TANGO_USER /etc/tangorc").read()
+        ret = ret.strip()
+        self.tangoUser = ret.split( '=')[1]
+
+        ret = os.popen( "hostname").read()
+        self.hostName = ret.strip()
+
 
         self.prepareWidgets()
 
@@ -270,11 +303,6 @@ class mainMenu( QtGui.QMainWindow):
         self.edit00StartAction.triggered.connect( self.cb_edit00Start)
         self.miscMenu.addAction( self.edit00StartAction)
 
-        self.editMacroServerLogAction = QtGui.QAction('MacroServer-Log', self)  
-        self.editMacroServerLogAction.setStatusTip('Edit the MacroServer log file')
-        self.editMacroServerLogAction.triggered.connect( self.cb_editMacroServerLog)
-        self.miscMenu.addAction( self.editMacroServerLogAction)
-
         self.editMacroServerPropertiesAction = QtGui.QAction('MacroServer-Properties', self)  
         self.editMacroServerPropertiesAction.setStatusTip('Copies /online_dir/MacroServer/macroserver.properties into a temporary file and launches an editor')
         self.editMacroServerPropertiesAction.triggered.connect( self.cb_editMacroServerProperties)
@@ -284,6 +312,34 @@ class mainMenu( QtGui.QMainWindow):
         self.editMacroServerEnvironmentAction.setStatusTip('Stores the MacroServer environment in a temporary file and launches an editor')
         self.editMacroServerEnvironmentAction.triggered.connect( self.cb_editMacroServerEnvironment)
         self.miscMenu.addAction( self.editMacroServerEnvironmentAction)
+
+        #
+        # "/tmp/tango-%s/MacroServer/%s/log.txt" %  (tangoUser, hostName)
+        #
+        self.editMacroServerLogTxtAction = QtGui.QAction( "/tmp/tango-%s/MacroServer/%s/log.txt" %  
+                                                          (self.tangoUser, self.hostName), self)  
+        self.editMacroServerLogTxtAction.triggered.connect( self.cb_editMacroServerLogTxt)
+        self.miscMenu.addAction( self.editMacroServerLogTxtAction)
+
+        #
+        # "/var/tmp/ds.log/MacroServer_%s.log" %  (hostName)
+        #
+        self.editMacroServerLogAction = QtGui.QAction( "/var/tmp/ds.log/MacroServer_%s.log" % (self.hostName), self)  
+        self.editMacroServerLogAction.triggered.connect( self.cb_editMacroServerLogLog)
+        self.miscMenu.addAction( self.editMacroServerLogAction)
+
+        #
+        # "/tmp/tango-%s/Pool/%s/log.txt" %  (tangoUser, hostName)
+        #
+        self.editPoolLogTxtAction = QtGui.QAction( "/tmp/tango-%s/Pool/%s/log.txt" %  ( self.tangoUser, self.hostName), self)  
+        self.editPoolLogTxtAction.triggered.connect( self.cb_editPoolLogTxt)
+        self.miscMenu.addAction( self.editPoolLogTxtAction)
+        #
+        # "/var/tmp/ds.log/Pool_%s.log" %  (hostName)
+        #
+        self.editPoolLogLogAction = QtGui.QAction( "/var/tmp/ds.log/Pool_%s.log" %  ( self.hostName), self)  
+        self.editPoolLogLogAction.triggered.connect( self.cb_editPoolLogLog)
+        self.miscMenu.addAction( self.editPoolLogLogAction)
 
         #
         # Misc
@@ -307,8 +363,8 @@ class mainMenu( QtGui.QMainWindow):
         #
         # selected MacroServer variables
         #
-        self.macroServerAction = QtGui.QAction('MacroServer (Selected Vars)', self)        
-        self.macroServerAction.setStatusTip('Selected MacroServer variables')
+        self.macroServerAction = QtGui.QAction('MacroServer (Selected Features)', self)        
+        self.macroServerAction.setStatusTip('Selected MacroServer features')
         self.macroServerAction.triggered.connect( self.cb_msIfc)
         self.miscMenu.addAction( self.macroServerAction)
         #
@@ -538,21 +594,48 @@ class mainMenu( QtGui.QMainWindow):
             editor = "emacs"
         os.system( "%s %s&" % (editor, fName))
 
-    def cb_editMacroServerLog( self):
-
-        if not os.access( "/etc/tangorc", os.R_OK): 
-            QtGui.QMessageBox.critical(self, 'Error', 
-                                       "/etc/tangorc does not exist", QtGui.QMessageBox.Ok)
-            return
+    def cb_editMacroServerLogTxt( self):
             
-        ret = os.popen( "grep TANGO_USER /etc/tangorc").read()
-        ret = ret.strip()
-        tangoUser = ret.split( '=')[1]
+        fName =  "/tmp/tango-%s/MacroServer/%s/log.txt" %  ( self.tangoUser, self.hostName)
+        if not os.access( fName, os.R_OK):
+            QtGui.QMessageBox.critical(self, 'Error', 
+                                       "%s does not exist" % fName,
+                                       QtGui.QMessageBox.Ok)
+            return
+        editor = os.getenv( "EDITOR")
+        if editor is None:
+            editor = "emacs"
+        os.system( "%s %s&" % (editor, fName))
 
-        ret = os.popen( "hostname").read()
-        hostName = ret.strip()
+    def cb_editMacroServerLogLog( self):
+            
+        fName =  "/var/tmp/ds.log/MacroServer_%s.log" %  ( self.hostName)
+        if not os.access( fName, os.R_OK):
+            QtGui.QMessageBox.critical(self, 'Error', 
+                                       "%s does not exist" % fName,
+                                       QtGui.QMessageBox.Ok)
+            return
+        editor = os.getenv( "EDITOR")
+        if editor is None:
+            editor = "emacs"
+        os.system( "%s %s&" % (editor, fName))
 
-        fName =  "/tmp/tango-%s/MacroServer/%s/log.txt" %  (tangoUser, hostName)
+    def cb_editPoolLogTxt( self):
+
+        fName =  "/tmp/tango-%s/Pool/%s/log.txt" %  ( self.tangoUser, self.hostName)
+        if not os.access( fName, os.R_OK):
+            QtGui.QMessageBox.critical(self, 'Error', 
+                                       "%s does not exist" % fName,
+                                       QtGui.QMessageBox.Ok)
+            return
+        editor = os.getenv( "EDITOR")
+        if editor is None:
+            editor = "emacs"
+        os.system( "%s %s&" % (editor, fName))
+
+    def cb_editPoolLogLog( self):
+
+        fName =  "/var/tmp/ds.log/Pool_%s.log" %  ( self.hostName)
         if not os.access( fName, os.R_OK):
             QtGui.QMessageBox.critical(self, 'Error', 
                                        "%s does not exist" % fName,
@@ -672,7 +755,7 @@ class mainMenu( QtGui.QMainWindow):
                 utils.execStopMove( dev)
 
     def cb_msIfc( self):
-        self.ms = MacroServerIfc( self.logWidget, self)
+        self.ms = macroServerIfc.MacroServerIfc( self.logWidget, self)
         self.ms.show()
 
     def cb_launchNxselector( self):
@@ -705,7 +788,7 @@ class mainMenu( QtGui.QMainWindow):
         sts = os.system( "evince pyspOutput.pdf &")
 
     def __del__( self):
-        print( "the destructor of main()")
+        pass
 
     def cb_clear( self):
         self.logWidget.clear()
@@ -1697,7 +1780,7 @@ class mainMenu( QtGui.QMainWindow):
             # 
             # remove 'self.' to allow for one widget only
             # 
-            self.w_attr = tngAPI.deviceAttributes( dev, logWidget, self)
+            self.w_attr = deviceAttributes.deviceAttributes( dev, logWidget, self)
             self.w_attr.show()
             return self.w_attr
         return cb
@@ -1716,7 +1799,7 @@ class mainMenu( QtGui.QMainWindow):
             # 
             # remove 'self.' to allow for one widget only
             # 
-            self.w_commands = tngAPI.deviceCommands( dev, logWidget, self)
+            self.w_commands = deviceCommands.deviceCommands( dev, logWidget, self)
             self.w_commands.show()
             return self.w_commands
         return cb
@@ -1727,7 +1810,7 @@ class mainMenu( QtGui.QMainWindow):
             # replace self.w_prop with w_prop to allow for one 
             # properties widget only
             #
-            self.w_prop = tngAPI.deviceProperties( dev, self.logWidget, self)
+            self.w_prop = deviceProperties.deviceProperties( dev, self.logWidget, self)
             self.w_prop.show()
             return self.w_prop
 
@@ -1750,522 +1833,11 @@ class mainMenu( QtGui.QMainWindow):
                                            QtGui.QMessageBox.Ok)
                 return 
                 
-            self.w_encAttr = tngAPI.motorEncAttributes( dev, logWidget, self)
+            self.w_encAttr = deviceAttributes.motorEncAttributes( dev, logWidget, self)
             self.w_encAttr.show()
             return self.w_encAttr
         return cb
 
-class MacroServerIfc( QtGui.QMainWindow):
-    def __init__( self, logWidget = None, parent = None):
-        super( MacroServerIfc, self).__init__( parent)
-        self.parent = parent
-        self.setWindowTitle( "Selected MacroServer Variables")
-        self.logWidget = logWidget
-        self.prepareWidgets()
-        #
-        # Menu Bar
-        #
-        self.menuBar = QtGui.QMenuBar()
-        self.setMenuBar( self.menuBar)
-        self.prepareMenuBar()
-        self.prepareStatusBar()
-
-        self.updateTimer = QtCore.QTimer(self)
-        self.updateTimer.timeout.connect( self.cb_refreshMacroServerIfc)
-        self.updateTimer.start( definitions.TIMEOUT_REFRESH)
-
-    def prepareMenuBar( self):
-        self.fileMenu = self.menuBar.addMenu('&File')
-        self.exitAction = QtGui.QAction('E&xit', self)        
-        self.exitAction.setStatusTip('Exit application')
-        self.exitAction.triggered.connect(QtGui.QApplication.quit)
-        self.fileMenu.addAction( self.exitAction)
-
-        #
-        # the activity menubar: help and activity
-        #
-        self.menuBarActivity = QtGui.QMenuBar( self.menuBar)
-        self.menuBar.setCornerWidget( self.menuBarActivity, QtCore.Qt.TopRightCorner)
-
-        #
-        # Help menu (bottom part)
-        #
-        self.helpMenu = self.menuBarActivity.addMenu('Help')
-        self.widgetAction = self.helpMenu.addAction(self.tr("Widget"))
-        self.widgetAction.triggered.connect( self.cb_helpWidget)
-
-        self.activityIndex = 0
-        self.activity = self.menuBarActivity.addMenu( "_")
-
-    def cb_helpWidget(self):
-        w = helpBox.HelpBox(self, self.tr("HelpWidget"), self.tr(
-            "\
-<p><b>ScanFile</b><br>\
-Use e.g. [\"tst.fio\", \"tst.nxs\"] to specify that two ouput \
-files will be created, a NeXus and a .fio file\
-\
-<p><b>Hooks</b><br>\
-Find explanations in the Spock manual, Scans chapter.\
-\
-<p><b>JsonRecorder</b><br>\
-The SardanaMonitor receives json-encoded data. Therefore the JsonRecoder checkbox should be enabled.\
-\
-<p><b>Logging</b><br>\
-LogMacro: if True, logging is active<br>\
-LogMacroDir: directory where the log will be stored<br>\
-\
-"
-                ))
-        w.show()
-
-    def prepareStatusBar( self):
-        #
-        # Status Bar
-        #
-        self.statusBar = QtGui.QStatusBar()
-        self.setStatusBar( self.statusBar)
-
-        self.abortMacro = QtGui.QPushButton(self.tr("Abort Macro")) 
-        self.statusBar.addWidget( self.abortMacro) 
-        self.abortMacro.clicked.connect( self.cb_abortMacro)
-
-        self.apply = QtGui.QPushButton(self.tr("&Apply")) 
-        self.statusBar.addPermanentWidget( self.apply) # 'permanent' to shift it right
-        self.apply.clicked.connect( self.cb_applyMacroServerIfc)
-        self.apply.setShortcut( "Alt+a")
-
-        self.exit = QtGui.QPushButton(self.tr("E&xit")) 
-        self.statusBar.addPermanentWidget( self.exit) # 'permanent' to shift it right
-        self.exit.clicked.connect( self.cb_closeMacroServerIfc )
-        self.exit.setShortcut( "Alt+x")
-        
-    def prepareWidgets( self):
-        w = QtGui.QWidget()
-        self.layout_v = QtGui.QVBoxLayout()
-        w.setLayout( self.layout_v)
-        self.setCentralWidget( w)
-        self.dct = {}
-        #
-        # the ActiveMntGrp
-        #
-        if HasyUtils.getMgAliases() is not None:
-            hBox = QtGui.QHBoxLayout()
-            w = QtGui.QLabel( "ActiveMntGrp")
-            w.setMinimumWidth( 120)
-            hBox.addWidget( w)
-            hBox.addStretch()            
-            self.activeMntGrpComboBox = QtGui.QComboBox()
-            self.activeMntGrpComboBox.setMinimumWidth( 250)
-            count = 0
-            activeMntGrp = HasyUtils.getEnv( "ActiveMntGrp")
-            for mg in HasyUtils.getMgAliases():
-                self.activeMntGrpComboBox.addItem( mg)
-                #
-                # initialize the comboBox to the current ActiveMntGrp
-                #
-                if activeMntGrp == mg:
-                    self.activeMntGrpComboBox.setCurrentIndex( count)
-                count += 1
-            #
-            # connect the callback AFTER the combox is filled. Otherwise there
-            # will be some useless changes
-            #
-            self.activeMntGrpComboBox.currentIndexChanged.connect( self.cb_activeMntGrpChanged)
-            hBox.addWidget( self.activeMntGrpComboBox)
-            self.layout_v.addLayout( hBox)
-        #
-        # horizontal line
-        #
-        hBox = QtGui.QHBoxLayout()
-        w = QtGui.QFrame()
-        w.setFrameShape( QtGui.QFrame.HLine)
-        w.setFrameShadow(QtGui.QFrame.Sunken)
-        hBox.addWidget( w)
-        self.layout_v.addLayout( hBox)
-        #
-        # some Env variables
-        #
-        self.varsEnv = [ "ScanDir", "ScanFile", "FioAdditions"]
-        for var in self.varsEnv:
-            hBox = QtGui.QHBoxLayout()
-            w = QtGui.QLabel( "%s:" % var)
-            w.setMinimumWidth( 120)
-            hBox.addWidget( w)
-            hsh = {}
-            w_value = QtGui.QLabel()
-            w_value.setMinimumWidth( 250)
-            w_value.setFrameStyle( QtGui.QFrame.Panel | QtGui.QFrame.Sunken)
-            hBox.addWidget( w_value)
-            w_line = QtGui.QLineEdit()
-            w_line.setAlignment( QtCore.Qt.AlignRight)
-            w_line.setMinimumWidth( 250)
-            hBox.addWidget( w_line)
-            self.dct[ var] = { "w_value": w_value, "w_line": w_line}
-            self.layout_v.addLayout( hBox)
-
-        #
-        # horizontal line
-        #
-        hBox = QtGui.QHBoxLayout()
-        w = QtGui.QFrame()
-        w.setFrameShape( QtGui.QFrame.HLine)
-        w.setFrameShadow(QtGui.QFrame.Sunken)
-        hBox.addWidget( w)
-        self.layout_v.addLayout( hBox)
-        #
-        # JsonRecorder
-        #
-        hBox = QtGui.QHBoxLayout()
-        self.w_jsonRecorderCheckBox = QtGui.QCheckBox()
-        self.w_jsonRecorderCheckBox.setToolTip( "Enables SardanaMonitor")
-        a = HasyUtils.getEnv( "JsonRecorder")
-        if a is False:
-            self.w_jsonRecorderCheckBox.setChecked( False)
-        else:
-            self.w_jsonRecorderCheckBox.setChecked( True)
-
-        self.w_jsonRecorderCheckBox.stateChanged.connect( self.cb_jsonRecorder)
-        hBox.addWidget( self.w_jsonRecorderCheckBox)
-        l = QtGui.QLabel( "JsonRecorder")
-        l.setMinimumWidth( 120)
-        hBox.addWidget( l)
-        hBox.addStretch()
-        self.layout_v.addLayout( hBox)
-        #
-        # horizontal line
-        #
-        hBox = QtGui.QHBoxLayout()
-        w = QtGui.QFrame()
-        w.setFrameShape( QtGui.QFrame.HLine)
-        w.setFrameShadow(QtGui.QFrame.Sunken)
-        hBox.addWidget( w)
-        self.layout_v.addLayout( hBox)
-        #
-        # ShowDial, ShowCtrlAxis
-        #
-        hsh = HasyUtils.getEnv( "_ViewOptions")
-        hBox = QtGui.QHBoxLayout()
-        self.w_showDialCheckBox = QtGui.QCheckBox()
-        self.w_showDialCheckBox.setToolTip( "If True, 'Dial' with motor position (wa, wm)")
-        if hsh[ 'ShowDial']:
-            self.w_showDialCheckBox.setChecked( True)
-        else:
-            self.w_showDialCheckBox.setChecked( False)
-        self.w_showDialCheckBox.stateChanged.connect( self.cb_showDial)
-        hBox.addWidget( self.w_showDialCheckBox)
-        l = QtGui.QLabel( "ShowDial")
-        l.setMinimumWidth( 120)
-        hBox.addWidget( l)
-
-        self.w_showCtrlAxisCheckBox = QtGui.QCheckBox()
-        self.w_showCtrlAxisCheckBox.setToolTip( "If True, show controller axis with motor position (wa, wm)")
-        if hsh[ 'ShowCtrlAxis']:
-            self.w_showCtrlAxisCheckBox.setChecked( True)
-        else:
-            self.w_showCtrlAxisCheckBox.setChecked( False)
-        self.w_showCtrlAxisCheckBox.stateChanged.connect( self.cb_showCtrlAxis)
-        hBox.addWidget( self.w_showCtrlAxisCheckBox)
-        l = QtGui.QLabel( "ShowCtrlAxis")
-        l.setMinimumWidth( 120)
-        hBox.addWidget( l)
-        hBox.addStretch()
-        self.layout_v.addLayout( hBox)
-        #
-        # horizontal line
-        #
-        hBox = QtGui.QHBoxLayout()
-        w = QtGui.QFrame()
-        w.setFrameShape( QtGui.QFrame.HLine)
-        w.setFrameShadow(QtGui.QFrame.Sunken)
-        hBox.addWidget( w)
-        self.layout_v.addLayout( hBox)
-        #
-        # general hooksm on-condition, on-stop
-        #
-        hBox = QtGui.QHBoxLayout()
-        self.w_generalHooksCheckBox = QtGui.QCheckBox()
-        hsh = HasyUtils.getEnv( "GeneralHooks")
-        if hsh is None:
-            self.w_generalHooksCheckBox.setChecked( False)
-        else:
-            self.w_generalHooksCheckBox.setChecked( True)
-
-        self.w_generalHooksCheckBox.stateChanged.connect( self.cb_generalHooks)
-        hBox.addWidget( self.w_generalHooksCheckBox)
-        l = QtGui.QLabel( "General hooks")
-        l.setMinimumWidth( 120)
-        hBox.addWidget( l)
-        #
-        self.w_onConditionCheckBox = QtGui.QCheckBox()
-        a = HasyUtils.getEnv( "GeneralCondition")
-        if a is None:
-            self.w_onConditionCheckBox.setChecked( False)
-        else:
-            self.w_onConditionCheckBox.setChecked( True)
-
-        self.w_onConditionCheckBox.stateChanged.connect( self.cb_onCondition)
-        hBox.addWidget( self.w_onConditionCheckBox)
-        l = QtGui.QLabel( "On condition")
-        l.setMinimumWidth( 120)
-        hBox.addWidget( l)
-        #
-        self.w_generalStopCheckBox = QtGui.QCheckBox()
-        a = HasyUtils.getEnv( "GeneralOnStopFunction")
-        if a is None:
-            self.w_generalStopCheckBox.setChecked( False)
-        else:
-            self.w_generalStopCheckBox.setChecked( True)
-
-        self.w_generalStopCheckBox.stateChanged.connect( self.cb_generalStop)
-        hBox.addWidget( self.w_generalStopCheckBox)
-        l = QtGui.QLabel( "General stop")
-        hBox.addWidget( l)
-        l.setMinimumWidth( 120)
-        hBox.addStretch()
-        self.layout_v.addLayout( hBox)
-        #
-        # horizontal line
-        #
-        hBox = QtGui.QHBoxLayout()
-        w = QtGui.QFrame()
-        w.setFrameShape( QtGui.QFrame.HLine)
-        w.setFrameShadow(QtGui.QFrame.Sunken)
-        hBox.addWidget( w)
-        self.layout_v.addLayout( hBox)
-        #
-        # logging
-        #
-        # LogMacro
-        # 
-        hBox = QtGui.QHBoxLayout()
-        self.w_LogMacroCheckBox = QtGui.QCheckBox()
-        self.w_LogMacroCheckBox.setToolTip( "If True, logging is active. \nThe file session_<BL>_door_<TANGO_HOST>.<i>.log\nis created in LogMacroDir")
-        self.w_LogMacroCheckBox.stateChanged.connect( self.cb_LogMacro)
-        hBox.addWidget( self.w_LogMacroCheckBox)
-        l = QtGui.QLabel( "LogMacro")
-        l.setMinimumWidth( 120)
-        l.setToolTip( "If True, logging is active. \nThe file session_<BL>_door_<TANGO_HOST>.<i>.log\nis created in LogMacroDir")
-        hBox.addWidget( l)
-        hBox.addStretch()
-        self.layout_v.addLayout( hBox)
-        #
-        #
-        # LogMacroMode
-        # 
-        self.varsEnv.append( "LogMacroMode")
-        var = "LogMacroMode"
-        w = QtGui.QLabel( "%s:" % var)
-        w.setToolTip( "If False, only one log file is created (recommended)")
-        w.setMinimumWidth( 120)
-        hBox.addWidget( w)
-        hsh = {}
-        w_value = QtGui.QLabel()
-        w_value.setMinimumWidth( 250)
-        w_value.setFrameStyle( QtGui.QFrame.Panel | QtGui.QFrame.Sunken)
-        hBox.addWidget( w_value)
-        w_line = QtGui.QLineEdit()
-        w_line.setAlignment( QtCore.Qt.AlignRight)
-        w_line.setMinimumWidth( 250)
-        hBox.addWidget( w_line)
-        self.dct[ var] = { "w_value": w_value, "w_line": w_line}
-        self.layout_v.addLayout( hBox)
-        
-        #
-        # LogMacroDir
-        # 
-        self.varsEnv.append( "LogMacroDir")
-        var = "LogMacroDir"
-        hBox = QtGui.QHBoxLayout()
-        w = QtGui.QLabel( "%s:" % var)
-        w.setMinimumWidth( 120)
-        hBox.addWidget( w)
-        hsh = {}
-        w_value = QtGui.QLabel()
-        w_value.setMinimumWidth( 250)
-        w_value.setFrameStyle( QtGui.QFrame.Panel | QtGui.QFrame.Sunken)
-        hBox.addWidget( w_value)
-        w_line = QtGui.QLineEdit()
-        w_line.setAlignment( QtCore.Qt.AlignRight)
-        w_line.setMinimumWidth( 250)
-        hBox.addWidget( w_line)
-        self.dct[ var] = { "w_value": w_value, "w_line": w_line}
-        self.layout_v.addLayout( hBox)
-
-    def cb_refreshMacroServerIfc( self):
-
-        if self.isMinimized(): 
-            return
-
-        self.activityIndex += 1
-        if self.activityIndex > (len( definitions.ACTIVITY_SYMBOLS) - 1):
-            self.activityIndex = 0
-        self.activity.setTitle( definitions.ACTIVITY_SYMBOLS[ self.activityIndex])
-        #
-        # has the ActiveMntGrp been changed from outside?
-        #
-        if HasyUtils.getMgAliases() is not None:
-            activeMntGrp = HasyUtils.getEnv( "ActiveMntGrp")
-            temp = str(self.activeMntGrpComboBox.currentText())
-            if temp != activeMntGrp:
-                max = self.activeMntGrpComboBox.count()
-                for count in range( 0, max):
-                    temp1 = str( self.activeMntGrpComboBox.itemText( count))
-                    if temp1 == activeMntGrp:
-                        self.activeMntGrpComboBox.setCurrentIndex( count)
-                    break
-                else:
-                    self.logWidget.append( "New ActiveMntGrp not on the list, restart widget")
-        
-        for var in self.varsEnv:
-            res = HasyUtils.getEnv( var)
-            if type( res) is list:
-                res = ".".join(res)
-            if res is None:
-                self.dct[ var][ "w_value"].setText( "None")
-            else:
-                self.dct[ var][ "w_value"].setText( str(res))
-
-        hsh = HasyUtils.getEnv( "_ViewOptions")
-        if hsh[ 'ShowDial']:
-            self.w_showDialCheckBox.setChecked( True)
-        else:
-            self.w_showDialCheckBox.setChecked( False)
-        if hsh[ 'ShowCtrlAxis']:
-            self.w_showCtrlAxisCheckBox.setChecked( True)
-        else:
-            self.w_showCtrlAxisCheckBox.setChecked( False)
-
-        hsh = HasyUtils.getEnv( "GeneralHooks")
-        if hsh is None:
-            self.w_generalHooksCheckBox.setChecked( False)
-        else:
-            self.w_generalHooksCheckBox.setChecked( True)
-
-        a = HasyUtils.getEnv( "GeneralCondition")
-        if a is None:
-            self.w_onConditionCheckBox.setChecked( False)
-        else:
-            self.w_onConditionCheckBox.setChecked( True)
-
-        a = HasyUtils.getEnv( "GeneralOnStopFunction")
-        if a is None:
-            self.w_generalStopCheckBox.setChecked( False)
-        else:
-            self.w_generalStopCheckBox.setChecked( True)
-
-        a = HasyUtils.getEnv( "JsonRecorder")
-        if a is True:
-            self.w_jsonRecorderCheckBox.setChecked( True)
-        else:
-            self.w_jsonRecorderCheckBox.setChecked( False)
-
-        a = HasyUtils.getEnv( "LogMacro")
-        if a is True:
-            self.w_LogMacroCheckBox.setChecked( True)
-        else:
-            self.w_LogMacroCheckBox.setChecked( False)
-
-
-    def closeEvent( self, e):
-        self.cb_closeMacroServerIfc()
-
-    def cb_closeMacroServerIfc( self): 
-        self.updateTimer.stop()
-        self.close()
-        
-    def cb_jsonRecorder( self):
-        if self.w_jsonRecorderCheckBox.isChecked():
-            HasyUtils.setEnv( "JsonRecorder", True)
-            a = HasyUtils.getEnv( "JsonRecorder")
-            self.logWidget.append( "JsonRecorder: %s" % repr( a))
-        else:
-            HasyUtils.setEnv( "JsonRecorder", False)
-            a = HasyUtils.getEnv( "JsonRecorder")
-            self.logWidget.append( "JsonRecorder: %s" % repr(a))
-
-    def cb_LogMacro( self):
-        if self.w_LogMacroCheckBox.isChecked():
-            HasyUtils.setEnv( "LogMacro", True)
-            a = HasyUtils.getEnv( "LogMacro")
-            self.logWidget.append( "LogMacro: %s" % repr( a))
-        else:
-            HasyUtils.setEnv( "LogMacro", False)
-            self.logWidget.append( "LogMacro: disabled")
-
-    def cb_generalStop( self):
-        if self.w_generalStopCheckBox.isChecked():
-            HasyUtils.runMacro( "gs_enable")
-            a = HasyUtils.getEnv( "GeneralOnStopFunction")
-            self.logWidget.append( "General on stop: %s" % repr( a))
-        else:
-            HasyUtils.runMacro( "gs_disable")
-            self.logWidget.append( "General on stop: disabled")
-
-    def cb_onCondition( self):
-        if self.w_onConditionCheckBox.isChecked():
-            HasyUtils.runMacro( "gc_enable")
-            a = HasyUtils.getEnv( "GeneralCondition")
-            self.logWidget.append( "General condition: %s" % repr( a))
-        else:
-            HasyUtils.runMacro( "gc_disable")
-            self.logWidget.append( "General condition: disabled")
-
-    def cb_generalHooks( self):
-
-        if self.w_generalHooksCheckBox.isChecked():
-            HasyUtils.runMacro( "gh_enable")
-            hsh = HasyUtils.getEnv( "GeneralHooks")
-            self.logWidget.append( "GeneralHooks: %s" % repr( hsh))
-        else:
-            HasyUtils.runMacro( "gh_disable")
-            self.logWidget.append( "GeneralHooks: disabled")
-        
-    def cb_showDial( self):
-        hsh = HasyUtils.getEnv( "_ViewOptions")
-        if self.w_showDialCheckBox.isChecked():
-            hsh[ 'ShowDial'] = True
-        else:
-            hsh[ 'ShowDial'] = False
-        HasyUtils.setEnv( "_ViewOptions", hsh)
-
-    def cb_showCtrlAxis( self):
-        hsh = HasyUtils.getEnv( "_ViewOptions")
-        if self.w_showCtrlAxisCheckBox.isChecked():
-            hsh[ 'ShowCtrlAxis'] = True
-        else:
-            hsh[ 'ShowCtrlAxis'] = False
-        HasyUtils.setEnv( "_ViewOptions", hsh)
-        
-        
-    def cb_applyMacroServerIfc( self):
-
-        for var in self.varsEnv:
-            hsh = self.dct[ var]
-            temp = str(hsh[ "w_line"].text())
-            if len( temp) > 0:
-                self.logWidget.append( "setting %s to %s" % (var, temp))
-                HasyUtils.setEnv( var, temp)
-                hsh[ 'w_value'].setText( temp)
-                hsh[ "w_line"].clear()
-
-    def cb_abortMacro( self): 
-        try:
-            door = PyTango.DeviceProxy( HasyUtils.getLocalDoorNames()[0])
-        except Exception as e:
-            self.logWidget.append( "cb_abortMacro: Failed to create proxy to Door" )
-            self.logWidget.append( repr( e))
-            return 
-
-        door.abortmacro()
-        self.logWidget.append( "Sent abortmacro() to door")
-        return 
-            
-    def cb_activeMntGrpChanged( self):
-        activeMntGrp = HasyUtils.getEnv( "ActiveMntGrp")
-        temp = str(self.activeMntGrpComboBox.currentText())
-        HasyUtils.setEnv( "ActiveMntGrp", temp)
-        elements = HasyUtils.getMgElements( temp)
-        self.logWidget.append( "ActiveMntGrp to %s: %s" % (temp, elements))
 
 def findAllMotors( args):
     global allMotors
@@ -2283,7 +1855,11 @@ def findAllMotors( args):
     # 'channel': '65'}
     #
     if not allDevices:
-        allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
+        #
+        # ignore tags at this level because we also have to 
+        # take motors from the pool
+        #
+        allDevices = HasyUtils.getOnlineXML()
         
     #
     # find the motors and match the tags
@@ -2293,6 +1869,14 @@ def findAllMotors( args):
         for dev in allDevices:
             if 'sardananame' in dev:
                 dev[ 'name'] = dev[ 'sardananame']
+            #
+            # append a motor, if there are no cliTags or there are matching tags
+            #
+            if args.tags is not None: 
+                if 'tags' not in dev: 
+                    continue
+                if not matchTags( dev[ 'tags'], args.tags):
+                    continue
 
             if (dev['module'].lower() == 'motor_tango' or 
                 dev['type'].lower() == 'stepping_motor' or
@@ -2309,7 +1893,7 @@ def findAllMotors( args):
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
                 allMotors.append( dev)
-        
+                        
     #
     # there are PseudoMotors that do not appear in online.xml, 
     # e.g. the diffractometer motors. they should also be included
@@ -2327,10 +1911,13 @@ def findAllMotors( args):
         #
         # devices that are in online.xml are not included via the pool
         #
+        flagFoundInOnlineXml = False
         for dev in allDevices:
             if name == dev[ 'name']:
+                flagFoundInOnlineXml = True
                 break
-        else:
+
+        if not flagFoundInOnlineXml: 
             #print( "name NOT in motorDict %s \n %s" % (name, repr( poolDct)))
             #
             # source: haso107d1:10000/pm/e6cctrl/1/Position
@@ -2386,6 +1973,10 @@ def findAllCounters( args):
     # <channel>1</channel>
     # </device>
     #
+    #
+    # for non motors we don't get devices from the pool, 
+    # so use the tags already here
+    #
     if not allDevices:
         allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
         
@@ -2394,7 +1985,7 @@ def findAllCounters( args):
         for dev in allDevices:
             if 'sardananame' in dev:
                 dev[ 'name'] = dev[ 'sardananame']
-                
+
             if (dev['module'].lower() == 'tangoattributectctrl'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
@@ -2402,7 +1993,7 @@ def findAllCounters( args):
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
                 allTangoAttrCtrls.append( dev)
-            elif (dev['module'].lower() == 'tango_counter'):
+            elif (dev['module'].lower() == 'counter_tango'):
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
                     continue
@@ -2444,6 +2035,10 @@ def findAllTimers( args):
     # <channel>1</channel>
     # </device>
     #
+    #
+    # for non motors we don't get devices from the pool, 
+    # so use the tags already here
+    #
     if not allDevices:
         allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
         
@@ -2480,6 +2075,10 @@ def findAllIORegs( args):
     # 'device': 'p09/motor/d1.65', 
     # 'type': 'stepping_motor', 
     # 'channel': '65'}
+    #
+    #
+    # for non motors we don't get devices from the pool, 
+    # so use the tags already here
     #
     if not allDevices:
         allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
@@ -2530,8 +2129,13 @@ def findAllAdcDacs( args):
     # <hostname>haso107d1:10000</hostname>
     # <channel>1</channel>
     # </device>
+    #
+    # for non motors we don't get devices from the pool, 
+    # so use the tags already here
+    #
     if not allDevices:
         allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
+
     #
     # find the motors and match the tags
     #
@@ -2593,7 +2197,10 @@ def findAllMCAs( args):
     # <channel>1</channel>
     # </device>
     #
-
+    #
+    # for non motors we don't get devices from the pool, 
+    # so use the tags already here
+    #
     if not allDevices:
         allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
 
@@ -2635,7 +2242,10 @@ def findAllCameras( args):
     # <hostname>hasep23oh:10000</hostname>
     # </device>
     #
-
+    #
+    # for non motors we don't get devices from the pool, 
+    # so use the tags already here
+    #
     if not allDevices:
         allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
 
@@ -2664,6 +2274,10 @@ def findAllPiLCModules( args):
     global allPiLCModules
     global allDevices
 
+    #
+    # for non motors we don't get devices from the pool, 
+    # so use the tags already here
+    #
     if not allDevices:
         allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
 
@@ -2692,6 +2306,10 @@ def findAllModuleTangos( args):
     global allModuleTangos
     global allDevices
 
+    #
+    # for non motors we don't get devices from the pool, 
+    # so use the tags already here
+    #
     if not allDevices:
         allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
 
@@ -2721,6 +2339,10 @@ def findAllMGs( args):
     global allMGs
     global allDevices
 
+    #
+    # for non motors we don't get devices from the pool, 
+    # so use the tags already here
+    #
     if not allDevices:
         allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
 

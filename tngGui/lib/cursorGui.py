@@ -3,7 +3,7 @@
 from taurus.external.qt import QtGui, QtCore 
 import PyTango
 import math, sys, os
-import HasyUtils, Spectra
+import HasyUtils
 import utils, definitions
 
 class CursorGUI( QtGui.QMainWindow):
