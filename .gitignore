@@ -3,6 +3,7 @@ __pycache__/
 # TK start
 *~
 *.pl
+CheckVersion.py
 Files.lis
 Files.db
 versionTarBall*
@@ -16,6 +17,7 @@ versionTarBall*
 # Distribution / packaging
 .Python
 build/
+DebianPackage/
 develop-eggs/
 dist/
 downloads/

@@ -88,8 +88,14 @@ LogMacroDir: directory where the log will be stored<br>\
         self.setStatusBar( self.statusBar)
 
         self.abortMacro = QtGui.QPushButton(self.tr("Abort Macro")) 
+        self.abortMacro.setToolTip( "Sends AbortMacro to Door")
         self.statusBar.addWidget( self.abortMacro) 
         self.abortMacro.clicked.connect( self.cb_abortMacro)
+
+        self.stopMacro = QtGui.QPushButton(self.tr("Stop Macro")) 
+        self.stopMacro.setToolTip( "Sends StopMacro to door; no action, if door.state == ON; stops all moves; dscan: motors return to start position")
+        self.statusBar.addWidget( self.stopMacro) 
+        self.stopMacro.clicked.connect( self.cb_stopMacro)
 
         self.restartMS = QtGui.QPushButton(self.tr("Restart MS")) 
         self.restartMS.setToolTip( "Restart MacroServer")
@@ -586,6 +592,21 @@ LogMacroDir: directory where the log will be stored<br>\
 
         door.abortmacro()
         self.logWidget.append( "Sent abortmacro() to door")
+        return 
+
+    def cb_stopMacro( self): 
+        try:
+            door = PyTango.DeviceProxy( HasyUtils.getLocalDoorNames()[0])
+        except Exception as e:
+            self.logWidget.append( "cb_stopacro: Failed to create proxy to Door" )
+            self.logWidget.append( repr( e))
+            return 
+        
+        if door.State() != PyTango.DevState.ON:        
+            door.StopMacro()
+            self.logWidget.append( "Sent StopMacro() to %s" % door.name())
+        else:
+            self.logWidget.append( "%s is already in ON state, no action" % door.name())
         return 
 
     def cb_restartMS( self): 

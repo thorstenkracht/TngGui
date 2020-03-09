@@ -1878,21 +1878,41 @@ def findAllMotors( args):
                 if not matchTags( dev[ 'tags'], args.tags):
                     continue
 
-            if (dev['module'].lower() == 'motor_tango' or 
-                dev['type'].lower() == 'stepping_motor' or
-                dev['type'].lower() == 'dac'):
-                #
-                # try to create a proxy. If this is not possible, ignore the motor
-                #
-                dev[ 'proxy'] = createProxy( dev)
-                if dev[ 'proxy'] is None:
-                    #print( "findAllMotors: No proxy to %s, ignoring this device" % dev[ 'name'])
+            if (dev['module'].lower() != 'motor_tango' and 
+                dev['type'].lower() != 'stepping_motor' and
+                dev['type'].lower() != 'dac'):
+                continue
+            #
+            # if a namePattern is supplied on the command line, 
+            # the motor name has to match
+            #
+            if args.namePattern is not None and len( args.namePattern) > 0: 
+                flagReject = True
+                for mot in args.namePattern:
+                    if HasyUtils.match( dev['name'], mot):
+                        #
+                        # do not create doubvle entries in allMotors, 
+                        # remember this selection: m3y m3yaw m3_dmy05 m3_dmy06
+                        # m3y matches m3y AND m3yaw
+                        #
+                        flagReject = False
+                        for devTemp in allMotors:
+                            if dev['name'] == devTemp[ 'name']:
+                                flagReject = True
+                if flagReject: 
                     continue
-                dev[ 'flagPseudoMotor'] = False
-                dev[ 'flagPoolMotor'] = False
-                dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-                dev[ 'flagOffline'] = False # devices not responding are flagged offline
-                allMotors.append( dev)
+
+            #
+            # try to create a proxy. If this is not possible, ignore the motor
+            #
+            dev[ 'proxy'] = createProxy( dev)
+            if dev[ 'proxy'] is None:
+                continue
+            dev[ 'flagPseudoMotor'] = False
+            dev[ 'flagPoolMotor'] = False
+            dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
+            dev[ 'flagOffline'] = False # devices not responding are flagged offline
+            allMotors.append( dev)
                         
     #
     # there are PseudoMotors that do not appear in online.xml, 
@@ -1905,6 +1925,10 @@ def findAllMotors( args):
         
     pool = PyTango.DeviceProxy( localPools[0])
     poolMotors = []
+    if pool.MotorList is None: 
+        allMotors = sorted( allMotors, key=lambda k: k['name'])
+        return 
+
     for mot in pool.MotorList:
         poolDct = json.loads( mot)
         name = poolDct['name']
@@ -1917,45 +1941,67 @@ def findAllMotors( args):
                 flagFoundInOnlineXml = True
                 break
 
-        if not flagFoundInOnlineXml: 
-            #print( "name NOT in motorDict %s \n %s" % (name, repr( poolDct)))
-            #
-            # source: haso107d1:10000/pm/e6cctrl/1/Position
-            #
-            dev = {}
-            dev[ 'name'] = name
-            dev[ 'type'] = 'type_tango'
-            dev[ 'module'] = 'motor_pool'
-            dev[ 'control'] = 'tango'
-            #
-            # source: haso107d1:10000/pm/e6cctrl/1/Position
-            #         tango://haspe212oh.desy.de:10000/motor/dummy_mot_ctrl/1
-            #
-            src = poolDct[ 'source']
-            if src.find( "tango://") == 0:
-                src = src[ 8:]
-            lst = src.split( '/')
-            dev[ 'hostname'] = lst[0]
-            
-            dev[ 'device'] = "/".join( lst[1:-1])
-            dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-            dev[ 'flagPoolMotor'] = True
-            dev[ 'flagOffline'] = False # devices not responding are flagged offline
-            if poolDct[ 'type'] == 'PseudoMotor':
-                dev[ 'flagPseudoMotor'] = True
-            else:
-                dev[ 'flagPseudoMotor'] = False   # exp_dmy01, mu, chi
+        if flagFoundInOnlineXml: 
+            continue
 
-            dev[ 'proxy'] = createProxy( dev)
-            if dev[ 'proxy'] is None:
-                #print( "findAllMotors: No proxy to %s, ignoring this device (2)" % dev[ 'name'])
+        #
+        # if a namePattern is supplied on the command line, 
+        # the motor name has to match
+        #
+        if args.namePattern is not None and len( args.namePattern) > 0: 
+            flagReject = True
+            for mot in args.namePattern:
+                if HasyUtils.match( dev['name'], mot):
+                    #
+                    # do not create doubvle entries in allMotors, 
+                    # remember this selection: m3y m3yaw m3_dmy05 m3_dmy06
+                    # m3y matches m3y AND m3yaw
+                    #
+                    flagReject = False
+                    for devTemp in allMotors:
+                        if dev['name'] == devTemp[ 'name']:
+                            flagReject = True
+            if flagReject: 
                 continue
-            poolMotors.append( dev)
+
+        #print( "name NOT in motorDict %s \n %s" % (name, repr( poolDct)))
+        #
+        # source: haso107d1:10000/pm/e6cctrl/1/Position
+        #
+        dev = {}
+        dev[ 'name'] = name
+        dev[ 'type'] = 'type_tango'
+        dev[ 'module'] = 'motor_pool'
+        dev[ 'control'] = 'tango'
+        #
+        # source: haso107d1:10000/pm/e6cctrl/1/Position
+        #         tango://haspe212oh.desy.de:10000/motor/dummy_mot_ctrl/1
+        #
+        src = poolDct[ 'source']
+        if src.find( "tango://") == 0:
+            src = src[ 8:]
+        lst = src.split( '/')
+        dev[ 'hostname'] = lst[0]
+            
+        dev[ 'device'] = "/".join( lst[1:-1])
+        dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
+        dev[ 'flagPoolMotor'] = True
+        dev[ 'flagOffline'] = False # devices not responding are flagged offline
+        if poolDct[ 'type'] == 'PseudoMotor':
+            dev[ 'flagPseudoMotor'] = True
+        else:
+            dev[ 'flagPseudoMotor'] = False   # exp_dmy01, mu, chi
+
+        dev[ 'proxy'] = createProxy( dev)
+        if dev[ 'proxy'] is None:
+            continue
+        poolMotors.append( dev)
 
     for dev in poolMotors: 
         allMotors.append( dev)
 
     allMotors = sorted( allMotors, key=lambda k: k['name'])
+    return 
 
 def findAllCounters( args):
     global allCounters, allTangoAttrCtrls, allTangoCounters
@@ -2366,7 +2412,12 @@ def findAllMGs( args):
             allMGs.append( dev)
         
 
-    for mg in HasyUtils.getMgAliases():
+    mgAliases = HasyUtils.getMgAliases()
+    if mgAliases is None: 
+        allMGs = sorted( allMGs, key=lambda k: k['name'])
+        return 
+
+    for mg in mgAliases:
         flag = False
         #
         # see which group we already have
