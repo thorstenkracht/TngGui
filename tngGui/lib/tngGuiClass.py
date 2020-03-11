@@ -243,9 +243,6 @@ class mainMenu( QtGui.QMainWindow):
         self.nxselectorAction = QtGui.QAction('Nxselector', self)        
         self.nxselectorAction.triggered.connect( self.cb_launchNxselector)
 
-        self.macroguiAction = QtGui.QAction('Macrogui', self)        
-        self.macroguiAction.triggered.connect( self.cb_launchMacrogui)
-
         self.motorMonitorAction = QtGui.QAction('SardanaMotorMonitor', self)        
         self.motorMonitorAction.triggered.connect( self.cb_launchMotorMonitor)
 
@@ -257,13 +254,21 @@ class mainMenu( QtGui.QMainWindow):
         self.toolsMenu.addAction( self.spockAction)
 
         if not IfcGraPysp.getSpectra(): 
-            self.pyspGuiAction = QtGui.QAction('pysp', self)        
+
+            self.pyspMonitorAction = QtGui.QAction('pyspMonitor', self)        
+            self.pyspMonitorAction.triggered.connect( self.cb_launchPyspMonitor)
+            self.toolsMenu.addAction( self.pyspMonitorAction)
+
+            self.pyspGuiAction = QtGui.QAction('pyspViewer', self)        
             self.pyspGuiAction.triggered.connect( self.cb_launchPyspGui)
             self.toolsMenu.addAction( self.pyspGuiAction)
 
             self.evinceAction = QtGui.QAction('evince pyspOutput.pdf', self)        
             self.evinceAction.triggered.connect( self.cb_launchEvince)
             self.toolsMenu.addAction( self.evinceAction)
+
+        self.macroguiAction = QtGui.QAction('Macrogui', self)        
+        self.macroguiAction.triggered.connect( self.cb_launchMacrogui)
 
         self.toolsMenu.addAction( self.nxselectorAction)
         self.toolsMenu.addAction( self.sardanaMonitorAction)
@@ -783,6 +788,9 @@ class mainMenu( QtGui.QMainWindow):
     def cb_launchPyspGui( self):
         self.pyspGui = PySpectra.pySpectraGuiClass.pySpectraGui()
         self.pyspGui.show()
+
+    def cb_launchPyspMonitor( self):
+        os.system( "/usr/bin/pyspMonitor.py &")
 
     def cb_launchEvince( self):
         sts = os.system( "evince pyspOutput.pdf &")
