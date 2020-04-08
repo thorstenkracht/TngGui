@@ -1,19 +1,23 @@
 #!/usr/bin/env python
 
-from taurus.external.qt import QtGui, QtCore 
+#from taurus.external.qt import QtGui, QtCore 
+from PyQt4 import QtCore, QtGui
+
 import PyTango
 import math, time, sys, os
 import definitions, utils, HasyUtils
 import tngAPI, cursorGui
-import IfcGraPysp
+import PySpectra.dMgt.GQE as GQE
+import PySpectra.misc.graPyspIfc as graPyspIfc
 import tngGui.lib.deviceAttributes as deviceAttributes
 import tngGui.lib.deviceProperties as deviceProperties
 import tngGui.lib.deviceCommands as deviceCommands
 import defineSignal
 import PySpectra.pySpectraGuiClass
+import PySpectra.pyspMonitorClass
 
 class SelectMotor( QtGui.QMainWindow):
-    def __init__( self, parent = None):
+    def __init__( self, allMotors, parent = None):
         super( SelectMotor, self).__init__( parent)
         self.parent = parent
         self.setWindowTitle( "Select Motor")
@@ -52,13 +56,14 @@ class SelectMotor( QtGui.QMainWindow):
         return cb
 
 class moveMotor( QtGui.QMainWindow):
-    def __init__( self, dev, timerName, counterName, 
-                  logWidget, allDevices, parent = None):
+    def __init__( self, dev, devices, logWidget, app = None, parent = None):
         super( moveMotor, self).__init__( parent)
 
         self.dev = dev
-        self.allDevices = allDevices
+        self.devices = devices
         self.logWidget = logWidget
+        self.app = app
+        self.parent = parent
         self.scan = None
 
         self.setWindowTitle( "Move %s" % dev[ 'name'])
@@ -69,10 +74,22 @@ class moveMotor( QtGui.QMainWindow):
         #
         self.flagDisplaySignal = True
         self.prepareWidgets()
-        self.timerName = timerName
-        self.counterName = counterName
-        self.timer = None
-        self.counter = None
+
+        #
+        # Signal
+        #
+        self.sampleTime = 0.1
+        self.signalMax = -1e35
+        signalMaxX = None
+        self.timerName = self.devices.timerName
+        self.counterName = self.devices.counterName
+        if self.timerName is None:
+            self.findTimer()
+        if self.counterName is None:
+            self.findCounter()
+        self.timerProxy = None
+        self.counterProxy = None
+
         self.flagClosed = False
         self.flagOffline = False
         self.pyspGui = None
@@ -101,29 +118,19 @@ class moveMotor( QtGui.QMainWindow):
             self.logWidget.append( "%s:" % repr( e))
             return
         #
-        # Signal
-        #
-        self.sampleTime = 0.1
-        self.signalMax = -1e35
-        signalMaxX = None
-        self.timerName = timerName
-        if self.timerName is None:
-            self.findTimer()
-        self.counterName = counterName
-        if self.counterName is None:
-            self.findCounter()
-        #
         # 
         #
         self.updateWidgets()
         self.signalChanged() # needs self.signalMaxString
-        self.updateTimer.start( definitions.TIMEOUT_REFRESH_MOTOR)
+        self.updateTimer.start( definitions.TIMEOUT_REFRESH_MOTOR) 
 
         self.targetPosition.setText( "n.a.")
         self.setSliderScale()
         self.targetPosition.setText( "n.a.")
         self.w_slider.setFocus()
         self.configureIncrCB()
+        
+        return 
  
     def updateWidgets( self): 
         self.updateCounts += 1
@@ -481,7 +488,7 @@ class moveMotor( QtGui.QMainWindow):
         self.statusBar.addPermanentWidget( self.w_zmxAttrButton) # 'permanent' to shift it right
         self.w_zmxAttrButton.clicked.connect( self.cb_launchZmxAttr)
 
-        if IfcGraPysp.getSpectra(): 
+        if graPyspIfc.getSpectra(): 
             self.cursor = QtGui.QPushButton(self.tr("&Cursor")) 
             self.cursor.setToolTip( "Launch cursor widget")
             self.statusBar.addPermanentWidget( self.cursor) # 'permanent' to shift it right
@@ -526,7 +533,7 @@ class moveMotor( QtGui.QMainWindow):
         self.fileMenu.addAction( self.writeFileAction)
 
         self.hardcopyAction = QtGui.QAction('Hardcopy', self)        
-        if IfcGraPysp.getSpectra(): 
+        if graPyspIfc.getSpectra(): 
             self.hardcopyAction.setStatusTip('Create postscript output')
         else:
             self.hardcopyAction.setStatusTip('Create pdf output')
@@ -534,21 +541,21 @@ class moveMotor( QtGui.QMainWindow):
         self.fileMenu.addAction( self.hardcopyAction)
 
         self.hardcopyActionA6 = QtGui.QAction('Hardcopy A6', self)        
-        if IfcGraPysp.getSpectra(): 
+        if graPyspIfc.getSpectra(): 
             self.hardcopyActionA6.setStatusTip('Create postscript output, A6')
         else:
             self.hardcopyActionA6.setStatusTip('Create pdf output, A6')
         self.hardcopyActionA6.triggered.connect( self.cb_hardcopyA6)
         self.fileMenu.addAction( self.hardcopyActionA6)
         
-        if IfcGraPysp.getSpectra(): 
+        if graPyspIfc.getSpectra(): 
             self.clipboardAction = self.fileMenu.addAction(self.tr("SpectraGraphic to Clipboard"))
             self.connect(self.clipboardAction, QtCore.SIGNAL("triggered()"), self.cb_clipboard)
 
         self.exitAction = QtGui.QAction('E&xit', self)        
         self.exitAction.setStatusTip('Exit application')
-        self.exitAction.triggered.connect(QtGui.QApplication.quit)
-        self.fileMenu.addAction( self.exitAction                  )
+        self.exitAction.triggered.connect( self.cb_closeMoveMotor)
+        self.fileMenu.addAction( self.exitAction)
 
         self.miscMenu = self.menuBar.addMenu('Misc')
 
@@ -626,7 +633,7 @@ class moveMotor( QtGui.QMainWindow):
         
         
     def cb_selectMotor( self): 
-        w = SelectMotor( self)
+        w = SelectMotor( self.devices.allMotors, self)
         w.show()
 
     def cb_helpMove( self):
@@ -666,7 +673,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
     def cb_flagDisplaySignalChanged( self):
         self.flagDisplaySignal = self.w_signalCheckBox.isChecked()
         if not self.flagDisplaySignal:
-            if self.scan is None:
+            if self.scan is not None:
                 self.deleteScan()
             self.signalMax = -1e35
             signalMaxX = None
@@ -677,7 +684,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         the user should see the name, e.g. d1_t01, only. 
         the device, e.g. p09/dgg2/d1.01, is for the proxy only
         '''
-        for dev in self.allDevices:
+        for dev in self.devices.allDevices:
             if dev['type'] == 'timer':
                 self.timerName = dev['name']
                 break
@@ -690,7 +697,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         the user should see the name, e.g. d1_c01, only. 
         the device, e.g. p09/counter/d1.01, is for the proxy only
         '''
-        for dev in self.allDevices:
+        for dev in self.devices.allDevices:
             if dev['type'] == 'counter' and dev['module'].lower() == 'sis3820':
                 self.counterName = dev['name']
                 break        
@@ -714,13 +721,13 @@ Btw: Key_Up/Down change the slew rate. <br>"
             timerDevice = None
             self.timerDev = None
         else:
-            for dev in self.allDevices:
+            for dev in self.devices.allDevices:
                 if dev['name'] == self.timerName:
                     self.timerDev = dev
                     timerDevice = "%s/%s" % (dev[ 'hostname'], dev['device']) 
                     break
 
-        for dev in self.allDevices:
+        for dev in self.devices.allDevices:
             if dev['name'] == self.counterName:
                 self.counterDev = dev
                 #
@@ -755,7 +762,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
                             QtGui.QMessageBox.critical(self, 'Error', 
                                                        "signalChanges: cannot parse %s" % self.dev[ 'name'], 
                                        QtGui.QMessageBox.Ok)
-                            self.counter == None
+                            self.counterProxy == None
                             return
                 else:
                     counterDevice = "%s/%s" % (dev[ 'hostname'], dev['device'])
@@ -769,7 +776,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
                             QtGui.QMessageBox.critical(self, 'Error', 
                                                        "signalChanges: failed to identify %s" % self.dev[ 'name'], 
                                        QtGui.QMessageBox.Ok)
-                            self.counter == None
+                            self.counterProxy == None
                             return
                 break
         if counterDevice is None:
@@ -778,22 +785,22 @@ Btw: Key_Up/Down change the slew rate. <br>"
         
         if timerDevice is None:
             self.logWidget.append( "signalChanged: no timer device")
-            self.timer = None
+            self.timerProxy = None
         else:
             try:
-                self.timer = PyTango.DeviceProxy( timerDevice)
+                self.timerProxy = PyTango.DeviceProxy( timerDevice)
             except Exception as e:
                 self.logWidget.append( "signalChanged: no proxy to %s" % timerDevice)
                 exceptionToLog( e, self.logWidget)
-                self.timer = None
+                self.timerProxy = None
                 return
 
         try:
-            self.counter = PyTango.DeviceProxy( counterDevice)
+            self.counterProxy = PyTango.DeviceProxy( counterDevice)
         except Exception as e:
             self.logWidget.append( "signalChanged: no proxy to %s" % counterDevice)
             utils.ExceptionToLog( e, self.logWidget)
-            self.counter = None
+            self.counterProxy = None
             return
 
         if self.scan is not None:
@@ -801,7 +808,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
     def cb_writeFile( self):
         #Spectra.gra_command( "write/fio %s" % self.nameGQE)
-        IfcGraPysp.writeFile( self.nameGQE)
+        graPyspIfc.writeFile( self.nameGQE)
         self.logWidget.append( "write/nocon/fio %s" % self.nameGQE)
 
     def _printHelper( self, frmt): 
@@ -813,7 +820,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
             QtGui.QMessageBox.about(self, 'Info Box', "No shell environment variable PRINTER.") 
             return
 
-        fName = IfcGraPysp.createHardCopy( printer = prnt, format = frmt, flagPrint = False)
+        fName = graPyspIfc.createHardCopy( printer = prnt, format = frmt, flagPrint = False)
         self.logWidget.append( HasyUtils.getDateTime())
         self.logWidget.append("Created %s (%s)" % (fName, frmt))
 
@@ -849,7 +856,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         self.logWidget.append("SpectraGraphic copied to clipboard")
 
     def cb_defineSignal( self):
-        w = defineSignal.DefineSignal( self, self.allDevices)
+        w = defineSignal.DefineSignal( self, self.devices.allDevices)
         w.show()
         return w
 
@@ -947,6 +954,24 @@ Btw: Key_Up/Down change the slew rate. <br>"
         self.flagClosed = True
         self.close()
 
+        #
+        # do not close the application, if we have been called from pyspMonitor
+        #
+        if type( self.parent) is PySpectra.pyspMonitorClass.pyspMonitor: 
+            return 
+        #
+        #  
+        #
+        graPyspIfc.close()
+        #
+        # we have to close the application, if we arrive here from 
+        # TngGui.main() -> TngGuiClass.launchMoveMotor() -> moveMotor()
+        #
+        if self.app is not None: 
+            self.app.quit()
+        return
+
+
     def cb_refreshMoveMotor( self):
         '''
         - update the motor position
@@ -963,6 +988,9 @@ Btw: Key_Up/Down change the slew rate. <br>"
         self.w_motorPosition.setText( "%g" % x)
 
         self.updateWidgets()
+
+        if self.scan is not None: 
+            self.scan.updateArrowMotorCurrent()
 
         if not self.flagDisplaySignal:
             return
@@ -990,10 +1018,26 @@ Btw: Key_Up/Down change the slew rate. <br>"
             self.setSliderScale()
 
         y = self.getSignal()
+        #
+        # y == None, if not self.motorMoving
+        #
         if y is None:
             self.updateTimer.start( definitions.TIMEOUT_REFRESH_MOTOR)
             return
+        #
+        # use the motor mean position for the x-axis of the plot
+        #
+        xAfter = utils.getPosition( self.dev) 
 
+        x = (x + xAfter)/2.
+        #
+        # assume the moveMotor() widget is open and the user executed
+        # an ascan from spock. This deletes the signal plot
+        #
+        if self.nameGQE is not None: 
+            if graPyspIfc.getGqe( self.nameGQE) is None: 
+                self.scan = None
+            
         if self.scan is None:
             try:
                 self.createScan()
@@ -1035,17 +1079,18 @@ Btw: Key_Up/Down change the slew rate. <br>"
             self.scan.sort()
         self.scan.autoscale()
         self.scan.display()
+        if self.scan.arrowMotorCurrent is not None:
+            self.scan.updateArrowMotorCurrent()
         self.lastX = x
 
         self.updateTimer.start( definitions.TIMEOUT_REFRESH_MOTOR)
 
         return 
-
     def deleteScan( self): 
         '''
-        use the IfcGraPysp module to abstract Spectra/PySpectra
+        use the graPyspIfc module to abstract Spectra/PySpectra
         '''
-        IfcGraPysp.deleteScan( self.scan)
+        graPyspIfc.deleteScan( self.scan)
         self.scan = None
         return 
 
@@ -1059,19 +1104,20 @@ Btw: Key_Up/Down change the slew rate. <br>"
         if self.cursorIsActive:
             self.cursorGUI.close()
 
+        graPyspIfc.delete()
+
         try:
-            self.scan = IfcGraPysp.Scan( name = self.nameGQE,
+            self.scan = graPyspIfc.Scan( name = self.nameGQE,
                                          start = utils.getUnitLimitMin( self.dev, self.logWidget),
                                          stop = utils.getUnitLimitMax( self.dev, self.logWidget), 
                                          np = 1000, 
                                          ylabel = self.counterName,
                                          xlabel = "%s/%s" % (self.dev[ 'hostname'],self.dev[ 'device']), 
-                                         comment = "Timer: %s, SampleTime: %g" % (self.timerName, 
-                                                                                  self.sampleTime),
+                                         comment = "Timer: %s, SampleTime: %g" % (self.timerName, self.sampleTime),
                                          NoDelete = False, 
-                                         colour = 2,
-                                         at = "(1,1,1)",
-                                         motorList = [ self.motorProxy],
+                                         colour = 'red',
+                                         #at = "(1,1,1)",
+                                         motorNameList = [ self.dev[ 'name']],
                                          logWidget = self.logWidget)
         except Exception as e:
             print( "moveMotor.createScan caught an exception")
@@ -1268,7 +1314,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         #
         # we need at least a counter, the timer may be missing
         #
-        if not self.counter:
+        if not self.counterProxy:
             return None
         #
         # do not getSignal(), if the motor is moved by some other application, 
@@ -1281,18 +1327,18 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         if (self.counterDev[ 'module'] == 'sis3820' or 
             self.counterDev[ 'module'] == 'vfcadc'):
-            self.counter.reset()
+            self.counterProxy.reset()
 
-        if self.timer is not None:
-            self.timer.sampleTime = self.sampleTime
-            self.timer.start()
-            while self.timer.state() == PyTango.DevState.MOVING:
+        if self.timerProxy is not None:
+            self.timerProxy.sampleTime = self.sampleTime
+            self.timerProxy.start()
+            while self.timerProxy.state() == PyTango.DevState.MOVING:
                 time.sleep(0.01)
         else:
             time.sleep( self.sampleTime)
 
         try:
-            cts = self.counter.read_attribute( self.counterAttributeName).value
+            cts = self.counterProxy.read_attribute( self.counterAttributeName).value
         except Exception as e:
             self.logWidget.append( "getSignal, failed to read_attribte %s (%s)" % 
                                    (self.counterAttributeName, self.counterDev[ 'name']))

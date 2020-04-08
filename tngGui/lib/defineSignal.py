@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-from taurus.external.qt import QtGui, QtCore 
+#from taurus.external.qt import QtGui, QtCore 
+from PyQt4 import QtCore, QtGui
+
 import utils
 
 class DefineSignal( QtGui.QMainWindow):

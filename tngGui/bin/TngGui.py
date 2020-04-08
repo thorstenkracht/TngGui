@@ -2,8 +2,10 @@
 
 import argparse, sys, os, time
 import tngGui.lib.tngGuiClass
-import tngGui.lib.IfcGraPysp as IfcGraPysp
-from taurus.external.qt import QtGui, QtCore 
+import PySpectra.misc.graPyspIfc as graPyspIfc
+import tngGui.lib.devices as devices
+#from taurus.external.qt import QtGui, QtCore 
+from PyQt4 import QtCore, QtGui
         
 def parseCLI():
     parser = argparse.ArgumentParser( 
@@ -19,8 +21,6 @@ Examples:
     select 9 motors, but all other devices
   TngGui.py -t expert
     select all devices tagged with expert
-  TngGui.py exp_mot01
-    launches the move menu for one motor
 
   The Python regular expression rules apply.
     ''')
@@ -51,9 +51,9 @@ def main():
         #
         # open spectra here to avoid x-errors on image exit
         #
-        IfcGraPysp.setSpectra( True)
+        graPyspIfc.setSpectra( True)
     else: 
-        IfcGraPysp.setSpectra( False)
+        graPyspIfc.setSpectra( False)
 
     #
     # before you uncomment the following line check
@@ -77,8 +77,14 @@ def main():
 
     app = QtGui.QApplication(sys.argv)
 
-    mainW = tngGui.lib.tngGuiClass.mainMenu(args, app)
-    mainW.show()
+    devs = devices.Devices( args)
+
+    if len( devs.allMotors) == 1:
+        w = tngGui.lib.tngGuiClass.launchMoveMotor( devs, app)
+        w.show()
+    else: 
+        mainW = tngGui.lib.tngGuiClass.mainMenu(args, app)
+        mainW.show()
 
     try:
         sys.exit( app.exec_())

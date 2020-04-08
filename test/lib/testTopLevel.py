@@ -10,16 +10,19 @@ python ./test/lib/testTopLevel.py testTopLevel.testCounterWidgets
 python ./test/lib/testTopLevel.py testTopLevel.testTimerWidget
 python ./test/lib/testTopLevel.py testTopLevel.testStopMove
 python ./test/lib/testTopLevel.py testTopLevel.testLogWidget
-python ./test/lib/testTopLevel.py testTopLevel.testMotorSelection
+python ./test/lib/testTopLevel.py testTopLevel.testDevices
 '''
 
 import sys, time, os
 import unittest
 import tngGui.lib.tngGuiClass
+import tngGui.lib.devices as devices
 import PyTango
-from taurus.external.qt import QtGui, QtCore 
+#from taurus.external.qt import QtGui, QtCore 
+from PyQt4 import QtCore, QtGui
 
 mainWidget = None
+devs = None
 
 class dummy(): 
     counterName = None
@@ -32,12 +35,16 @@ class testTopLevel( unittest.TestCase):
     @classmethod
     def setUpClass( cls): 
         global mainWidget
+        global devs
+
         if os.getenv( "DISPLAY") != ':0':
             QtGui.QApplication.setStyle( 'Cleanlooks')
 
         testTopLevel.app = QtGui.QApplication(sys.argv)
 
         args = dummy()
+
+        devs = devices.Devices( xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
 
         mainWidget = tngGui.lib.tngGuiClass.mainMenu( args)
         mainWidget.show()
@@ -98,7 +105,7 @@ class testTopLevel( unittest.TestCase):
         call the attributes widget for a counter
         '''
         dev = None
-        for d in tngGui.lib.tngGuiClass.allCounters:
+        for d in devs.allCounters:
             if d[ 'name'] == 'eh_c01':
                 dev = d
                 break
@@ -125,7 +132,7 @@ class testTopLevel( unittest.TestCase):
         '''
         call the timer widget
         '''
-        for d in tngGui.lib.tngGuiClass.allTimers:
+        for d in devs.allTimers:
             if d[ 'name'] == 'eh_t01':
                 dev = d
                 break
@@ -147,7 +154,7 @@ class testTopLevel( unittest.TestCase):
         '''
         mainWidget.cb_motorTable()
         dev = None
-        for d in tngGui.lib.tngGuiClass.selectedMotors:
+        for d in devs.allMotors:
             if d[ 'name'] == 'eh_mot65':
                 dev = d
                 break
@@ -184,15 +191,27 @@ class testTopLevel( unittest.TestCase):
         mainWidget.logWidget.clear()
         self.waitSomeTime( 1.0)
 
-    def testMotorSelection( self): 
+    def testDevices( self): 
         args = dummy()
         args.namePattern = [ 'eh_mot0']
-        tngGui.lib.tngGuiClass.findAllMotors( args)
-        self.assertEqual( len( tngGui.lib.tngGuiClass.allMotors), 9)
+        devs = devices.Devices( args = args, xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
+        self.assertEqual( len( devs.allMotors), 9)
         args.namePattern = [ 'eh_mot0', 'eh_mot2']
-        tngGui.lib.tngGuiClass.findAllMotors( args)
-        self.assertEqual( len( tngGui.lib.tngGuiClass.allMotors), 19)
+        devs = devices.Devices( args = args, xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
+        self.assertEqual( len( devs.allMotors), 19)
 
+        dct = { 'allIRegs': 16, 'allMCAs': 4, 'allMGs': 8, 'allModuleTangos': 1, 
+                'allMotors': 19, 'allORegs': 16, 'allPiLCModules': 0, 'allTangoAttrCtrls': 12, 
+                'allTangoCounters': 4, 'allTimers': 4, 'allVfcAdcs': 8}
+
+        for mg in devs.allMGs: 
+            print( "testToplevel.testDevices: %s" % repr( mg[ 'name']))
+
+        for k in list( dct.keys()):
+            com = "length = len( devs.%s)" % k
+            exec com
+            #print( "testToplevel.testDevices: len( %s): %d" % (k, length))
+            self.assertEqual( length, dct[ k])
         return 
 
 if __name__ == "__main__":

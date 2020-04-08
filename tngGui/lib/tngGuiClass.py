@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-import math, time, os, json, signal, sys
+import math, time, os, signal, sys
 import HasyUtils
-#from PyQt4 import QtGui
-#from PyQt4 import QtCore
-from taurus.external.qt import QtGui, QtCore 
+#from taurus.external.qt import QtGui, QtCore 
+from PyQt4 import QtCore, QtGui
 import numpy as np
  
 import tngGui.lib.helpBox as helpBox
@@ -16,39 +15,12 @@ import tngGui.lib.deviceProperties as deviceProperties
 import tngGui.lib.deviceCommands as deviceCommands
 import tngGui.lib.macroServerIfc as macroServerIfc
 import tngGui.lib.utils as utils
-import tngGui.lib.IfcGraPysp as IfcGraPysp
+import PySpectra.misc.graPyspIfc as graPyspIfc
 import tngGui.lib.definitions as definitions
+import tngGui.lib.devices as devices
 import PySpectra.pySpectraGuiClass
 
 import PyTango
-allDevices = []
-selectedMotors = []
-allMotors = []
-allIRegs = []
-allORegs = []
-allAdcs = []
-allMCAs = []
-allVfcAdcs = []
-allCameras = []
-allPiLCModules = []
-allModuleTangos = []
-allDacs = []
-allTimers = []
-allCounters = []        # sis3820
-allTangoAttrCtrls = []
-allTangoCounters = []   # VcExecutors
-allMGs = []
-#
-# list those modules that have the attribite widget prepared
-#
-cameraNames = ['eigerdectris', 'lambda','pilatus100k', 'pilatus300k', 'pilatus1m', 'pilatus2m', 'pilatus6m']
-
-PiLCModuleNames = ['pilc_module']
-
-modulesRoiCounters = ['mca8715roi', 
-                      'vortex_roi1', 'vortex_roi2', 'vortex_roi3', 'vortex_roi4', 
-                      'amptekroi',
-                      'mythenroi']
 
 
 def matchTags( tags, cliTags): 
@@ -67,6 +39,16 @@ def matchTags( tags, cliTags):
     #print( "+++matchTags %s %s -> False " % (repr( tags), repr( cliTags)))
     return False
 
+def launchMoveMotor( dev, devices, app, logWidget = None, parent = None): 
+    '''
+    called from 
+      - TngGui.main() 
+      - pyspMonitorClass
+    '''
+    w = moveMotor.moveMotor( dev, devices, logWidget, app, parent)
+    return w
+
+
 class mainMenu( QtGui.QMainWindow):
     '''
     the main class of the TngTool application
@@ -75,77 +57,14 @@ class mainMenu( QtGui.QMainWindow):
         super( mainMenu, self).__init__( parent)
         self.setWindowTitle( "TngGui")
 
-        global allDevices
-        global selectedMotors
+        self.args = args        
+        self.devices = devices.Devices( args = args, xmlFile = None, parent = self)
 
-        findAllMotors( args)
-        findAllIORegs( args)
-        findAllAdcDacs( args)
-        findAllMCAs( args)
-        findAllCameras( args)
-        findAllPiLCModules( args)
-        findAllModuleTangos( args)
-        findAllTimers( args)
-        findAllCounters( args)
-        findAllMGs( args)
-     
-        selectedMotors = allMotors
-
-        if args.tags and len( args.namePattern) > 0:
+        if self.args.tags and len( self.args.namePattern) > 0:
             print( "TngGui: specify tags or names")
             sys.exit( 255)
 
-        timerName = None
-        counterName = None
-        if args.counterName:
-            counterName = args.counterName
-        if args.timerName:
-            timerName = args.timerName
-#    selectedMotors = []
-#    if args.namePattern:
-#        #
-#        # find selected motors
-#        #
-#        for dev in allMotors:
-#            for mot in args.namePattern:
-#                if HasyUtils.match( dev['name'], mot):
-#                    #
-#                    # remember this selection: m3y m3yaw m3_dmy05 m3_dmy06
-#                    #  m3y matches m3y AND m3yaw
-#                    # to make sure there are no doubles
-#                    #
-#                    for devTemp in selectedMotors:
-#                        if dev['name'] == devTemp[ 'name']:
-#                            break
-#                     else:
-#                        selectedMotors.append( dev)
-#        if len( selectedMotors) == 0:
-#            print( "TngGui: no matching motors")
-#            return 0
-#        #
-#        # one motor specified: launch the moveMotor widget immediately
-#        #
-#        if len( selectedMotors) == 1:
-#            w = moveMotor.moveMotor( selectedMotors[0], timerName, counterName, None, allDevices, None)
-#            w.show()
-#        else:
-#            mainW = mainMenu(timerName, counterName, args)
-#            mainW.show()
-#    else:
-#        #
-#        # no pattern: all motors are selected
-#        #
-#        selectedMotors = allMotors
-#        if len( selectedMotors) == 0:
-#            print( "TngGui: no motors found")
-#            return 0
-#        mainW = tngGui.lib.tngGuiClasss.mainMenu(timerName, counterName, args)
-#        mainW.show()
-
         self.app = app
-
-        self.timerName = timerName
-        self.counterName = counterName
 
         self.w_attr = None
         self.w_commands = None
@@ -201,9 +120,9 @@ class mainMenu( QtGui.QMainWindow):
 
         self.scrollArea = QtGui.QScrollArea()
         self.scrollArea.setMinimumWidth( 800)
-        if len( selectedMotors) < 5:
+        if len( self.devices.allMotors) < 5:
             self.scrollArea.setMinimumHeight( 200)
-        elif len( selectedMotors) < 9:
+        elif len( self.devices.allMotors) < 9:
             self.scrollArea.setMinimumHeight( 400)
         else:
             self.scrollArea.setMinimumHeight( 600)
@@ -253,7 +172,7 @@ class mainMenu( QtGui.QMainWindow):
         self.spockAction.triggered.connect( self.cb_launchSpock)
         self.toolsMenu.addAction( self.spockAction)
 
-        if not IfcGraPysp.getSpectra(): 
+        if not graPyspIfc.getSpectra(): 
 
             self.pyspMonitorAction = QtGui.QAction('pyspMonitor', self)        
             self.pyspMonitorAction.triggered.connect( self.cb_launchPyspMonitor)
@@ -381,53 +300,55 @@ class mainMenu( QtGui.QMainWindow):
         self.motorTableAction.triggered.connect( self.cb_motorTable)
         self.tableMenu.addAction( self.motorTableAction)
 
-        if len( allAdcs) > 0 or len(allDacs) > 0:
+        if len( self.devices.allAdcs) > 0 or len( self.devices.allDacs) > 0:
             self.adcDacTableAction = QtGui.QAction('ADC/DACs', self)        
             self.adcDacTableAction.triggered.connect( self.cb_adcDacTable)
             self.tableMenu.addAction( self.adcDacTableAction)
 
-        if len( allCameras) > 0:
+        if len( self.devices.allCameras) > 0:
             self.cameraTableAction = QtGui.QAction('Cameras', self)        
             self.cameraTableAction.triggered.connect( self.cb_cameraTable)
             self.tableMenu.addAction( self.cameraTableAction)
 
-        if len( allCounters) or len( allTangoAttrCtrls) > 0 or len( allTangoCounters) > 0:
+        if len( self.devices.allCounters) or \
+           len( self.devices.allTangoAttrCtrls) > 0 or \
+           len( self.devices.allTangoCounters) > 0:
             self.counterTableAction = QtGui.QAction('Counters', self)        
             self.counterTableAction.triggered.connect( self.cb_counterTable)
             self.tableMenu.addAction( self.counterTableAction)
 
-        if len( allIRegs) > 0 or len(allORegs) > 0:
+        if len( self.devices.allIRegs) > 0 or len(self.devices.allORegs) > 0:
             self.ioregTableAction = QtGui.QAction('IORegs', self)        
             self.ioregTableAction.triggered.connect( self.cb_ioregTable)
             self.tableMenu.addAction( self.ioregTableAction)
 
-        if len( allMCAs) > 0:
+        if len( self.devices.allMCAs) > 0:
             self.mcaTableAction = QtGui.QAction('MCAs', self)        
             self.mcaTableAction.triggered.connect( self.cb_mcaTable)
             self.tableMenu.addAction( self.mcaTableAction)
 
-        if len( allModuleTangos) > 0:
+        if len( self.devices.allModuleTangos) > 0:
             self.moduleTangoTableAction = QtGui.QAction('ModuleTango', self)        
             self.moduleTangoTableAction.triggered.connect( self.cb_moduleTangoTable)
             self.tableMenu.addAction( self.moduleTangoTableAction)
 
-        if len( allPiLCModules) > 0:
+        if len( self.devices.allPiLCModules) > 0:
             self.PiLCModulesTableAction = QtGui.QAction('PiLCModules', self)        
             self.PiLCModulesTableAction.triggered.connect( self.cb_PiLCModulesTable)
             self.tableMenu.addAction( self.PiLCModulesTableAction)
 
-        if len( allTimers) > 0:
+        if len( self.devices.allTimers) > 0:
             self.timerTableAction = QtGui.QAction('Timers (extra widget)', self)        
             self.timerTableAction.triggered.connect( self.cb_launchTimer)
             self.tableMenu.addAction( self.timerTableAction)
 
-        if len( allVfcAdcs) > 0:
+        if len( self.devices.allVfcAdcs) > 0:
             self.vfcadcTableAction = QtGui.QAction('VFCADCs', self)        
             self.vfcadcTableAction.triggered.connect( self.cb_vfcadcTable)
             self.tableMenu.addAction( self.vfcadcTableAction)
 
-        if len( allMGs) > 0:
-            self.mgTableAction = QtGui.QAction('MGs (debug)', self)        
+        if len( self.devices.allMGs) > 0:
+            self.mgTableAction = QtGui.QAction('MGs', self)        
             self.mgTableAction.triggered.connect( self.cb_mgTable)
             self.tableMenu.addAction( self.mgTableAction)
 
@@ -450,7 +371,7 @@ class mainMenu( QtGui.QMainWindow):
         self.activity = self.menuBarActivity.addMenu( "_")
 
     def cb_launchTimer( self): 
-        self.w_timer = tngAPI.timerWidget( self.logWidget, allTimers, self)
+        self.w_timer = tngAPI.timerWidget( self.logWidget, self.devices.allTimers, self)
         self.w_timer.show()
         return self.w_timer
 
@@ -525,7 +446,7 @@ class mainMenu( QtGui.QMainWindow):
         #
         # eventually 
         #
-        IfcGraPysp.close()
+        graPyspIfc.close()
 
         return 
 
@@ -755,7 +676,7 @@ class mainMenu( QtGui.QMainWindow):
         self.exit.setShortcut( "Alt+x")
 
     def cb_stopMove( self):
-        for dev in selectedMotors:
+        for dev in self.devices.allMotors:
             if dev[ 'proxy'].state() == PyTango.DevState.MOVING:
                 utils.execStopMove( dev)
 
@@ -848,7 +769,7 @@ class mainMenu( QtGui.QMainWindow):
         hndlr = signal.getsignal( signal.SIGALRM)
         signal.signal( signal.SIGALRM, self.handlerALRM)
 
-        for dev in selectedMotors:
+        for dev in self.devices.allMotors:
             #print( "connecting to %s" % dev[ 'name'])
             signal.alarm( 2)
             try:
@@ -932,7 +853,7 @@ class mainMenu( QtGui.QMainWindow):
         # </device>
         #
         count = 1
-        for dev in allIRegs:
+        for dev in self.devices.allIRegs:
             aliasName = utils.QPushButtonTK( dev['name'])
             aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
             aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
@@ -960,7 +881,7 @@ class mainMenu( QtGui.QMainWindow):
             
             count += 1
 
-        for dev in allORegs:
+        for dev in self.devices.allORegs:
             aliasName = utils.QPushButtonTK(self.tr("%s" % dev[ 'name'])) 
             aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
             aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
@@ -1018,7 +939,7 @@ class mainMenu( QtGui.QMainWindow):
         # </device>
         #
         count = 1
-        for dev in allAdcs:
+        for dev in self.devices.allAdcs:
             aliasName = utils.QPushButtonTK( dev['name'])
             aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
             aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
@@ -1046,7 +967,7 @@ class mainMenu( QtGui.QMainWindow):
             
             count += 1
 
-        for dev in allDacs:
+        for dev in self.devices.allDacs:
             aliasName = utils.QPushButtonTK( dev['name'])
             aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
             aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
@@ -1102,7 +1023,7 @@ class mainMenu( QtGui.QMainWindow):
         # </device>
         #
         count = 1
-        for dev in allCameras:
+        for dev in self.devices.allCameras:
             aliasName = utils.QPushButtonTK( dev['name'])
             aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
             aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
@@ -1153,7 +1074,7 @@ class mainMenu( QtGui.QMainWindow):
         # </device>
         #
         count = 1
-        for dev in allPiLCModules:
+        for dev in self.devices.allPiLCModules:
             aliasName = utils.QPushButtonTK( dev['name'])
             aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
             aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
@@ -1193,7 +1114,7 @@ class mainMenu( QtGui.QMainWindow):
         layout_grid.addWidget( QtGui.QLabel( "Module"), 0, 2)
         layout_grid.addWidget( QtGui.QLabel( "DeviceName"), 0, 3)
         count = 1
-        for dev in allModuleTangos:
+        for dev in self.devices.allModuleTangos:
             aliasName = utils.QPushButtonTK( dev['name'])
             aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
             aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
@@ -1244,7 +1165,7 @@ class mainMenu( QtGui.QMainWindow):
         # </device>
         #
         count = 1
-        for dev in allMCAs:
+        for dev in self.devices.allMCAs:
             if dev[ 'module'].lower() == 'mca_8701':
                 aliasName = utils.QPushButtonTK( dev['name'])
                 aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
@@ -1288,7 +1209,7 @@ class mainMenu( QtGui.QMainWindow):
         layout_grid.addWidget( QtGui.QLabel( "DeviceName"), count, 5)
         count += 1
 
-        for dev in allVfcAdcs:
+        for dev in self.devices.allVfcAdcs:
             dev[ 'w_aliasName'] = utils.QPushButtonTK( dev['name'])
             dev[ 'w_aliasName'].setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
             dev[ 'w_aliasName'].mb1.connect( self.make_cb_attributes( dev, self.logWidget))
@@ -1341,7 +1262,9 @@ class mainMenu( QtGui.QMainWindow):
         layout_grid.addWidget( QtGui.QLabel( "DeviceName"), count, 5)
         count += 1
 
-        for dev in allCounters + allTangoAttrCtrls + allTangoCounters:
+        for dev in self.devices.allCounters + \
+            self.devices.allTangoAttrCtrls + \
+            self.devices.allTangoCounters:
 
             aliasName = utils.QPushButtonTK( dev['name'])
             aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
@@ -1394,7 +1317,7 @@ class mainMenu( QtGui.QMainWindow):
         layout_grid.addWidget( QtGui.QLabel( "Module"), 0, 2)
         layout_grid.addWidget( QtGui.QLabel( "DeviceName"), 0, 3)
         count = 1
-        for dev in allMGs:
+        for dev in self.devices.allMGs:
             aliasName = utils.QPushButtonTK( dev['name'])
             aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
             aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
@@ -1448,7 +1371,7 @@ class mainMenu( QtGui.QMainWindow):
         signal.alarm( 2)
         self.updateCount += 1
         try:
-            for dev in selectedMotors:
+            for dev in self.devices.allMotors:
                 if dev[ 'flagOffline']:
                     continue
                 if dev[ 'w_pos'].visibleRegion().isEmpty():
@@ -1506,7 +1429,7 @@ class mainMenu( QtGui.QMainWindow):
         startTime = time.time()
         self.updateCount += 1
         try:
-            for dev in allIRegs + allORegs:
+            for dev in self.devices.allIRegs + self.devices.allORegs:
                 if dev[ 'flagOffline']:
                     continue
                 if dev[ 'w_value'].visibleRegion().isEmpty():
@@ -1541,7 +1464,7 @@ class mainMenu( QtGui.QMainWindow):
         startTime = time.time()
         self.updateCount += 1
         try:
-            for dev in allVfcAdcs:
+            for dev in self.devices.allVfcAdcs:
                 if dev[ 'flagOffline']:
                     continue
                 if dev[ 'w_counts'].visibleRegion().isEmpty():
@@ -1578,7 +1501,9 @@ class mainMenu( QtGui.QMainWindow):
         startTime = time.time()
         self.updateCount += 1
         try:
-            for dev in allCounters + allTangoAttrCtrls + allTangoCounters:
+            for dev in self.devices.allCounters + \
+                self.devices.allTangoAttrCtrls + \
+                self.devices.allTangoCounters:
                 if dev[ 'flagOffline']:
                     continue
                 if dev[ 'w_counts'].visibleRegion().isEmpty():
@@ -1614,7 +1539,7 @@ class mainMenu( QtGui.QMainWindow):
         startTime = time.time()
         self.updateCount += 1
         try:
-            for dev in allAdcs + allDacs:
+            for dev in self.devices.allAdcs + self.devices.allDacs:
                 if dev[ 'flagOffline']:
                     continue
                 if dev[ 'w_value'].visibleRegion().isEmpty():
@@ -1769,7 +1694,7 @@ class mainMenu( QtGui.QMainWindow):
                                            QtGui.QMessageBox.Ok)
                 return
 
-            self.w_moveMotor = moveMotor.moveMotor( dev, self.timerName, self.counterName, logWidget, allDevices, self)
+            self.w_moveMotor = moveMotor.moveMotor( dev, self.devices, logWidget, None, self)
             self.w_moveMotor.show()
             return self.w_moveMotor
         return cb
@@ -1847,638 +1772,4 @@ class mainMenu( QtGui.QMainWindow):
         return cb
 
 
-def findAllMotors( args):
-    global allMotors
-    global allDevices
-    #
-    # read /online_dir/online.xml here because it is also elsewhere
-    #
-    #{'control': 'tango', 
-    # 'name': 'd1_mot65', 
-    # 'tags': 'user,expert',
-    # 'hostname': 'haso107d1:10000', 
-    # 'module': 'oms58', 
-    # 'device': 'p09/motor/d1.65', 
-    # 'type': 'stepping_motor', 
-    # 'channel': '65'}
-    #
-    if not allDevices:
-        #
-        # ignore tags at this level because we also have to 
-        # take motors from the pool
-        #
-        allDevices = HasyUtils.getOnlineXML()
-        
-    #
-    # find the motors and match the tags
-    #
-    allMotors = []
-    if allDevices:
-        for dev in allDevices:
-            if 'sardananame' in dev:
-                dev[ 'name'] = dev[ 'sardananame']
-            #
-            # append a motor, if there are no cliTags or there are matching tags
-            #
-            if args.tags is not None: 
-                if 'tags' not in dev: 
-                    continue
-                if not matchTags( dev[ 'tags'], args.tags):
-                    continue
 
-            if (dev['module'].lower() != 'motor_tango' and 
-                dev['type'].lower() != 'stepping_motor' and
-                dev['type'].lower() != 'dac'):
-                continue
-            #
-            # if a namePattern is supplied on the command line, 
-            # the motor name has to match
-            #
-            if args.namePattern is not None and len( args.namePattern) > 0: 
-                flagReject = True
-                for mot in args.namePattern:
-                    if HasyUtils.match( dev['name'], mot):
-                        #
-                        # do not create doubvle entries in allMotors, 
-                        # remember this selection: m3y m3yaw m3_dmy05 m3_dmy06
-                        # m3y matches m3y AND m3yaw
-                        #
-                        flagReject = False
-                        for devTemp in allMotors:
-                            if dev['name'] == devTemp[ 'name']:
-                                flagReject = True
-                if flagReject: 
-                    continue
-
-            #
-            # try to create a proxy. If this is not possible, ignore the motor
-            #
-            dev[ 'proxy'] = createProxy( dev)
-            if dev[ 'proxy'] is None:
-                continue
-            dev[ 'flagPseudoMotor'] = False
-            dev[ 'flagPoolMotor'] = False
-            dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-            dev[ 'flagOffline'] = False # devices not responding are flagged offline
-            allMotors.append( dev)
-                        
-    #
-    # there are PseudoMotors that do not appear in online.xml, 
-    # e.g. the diffractometer motors. they should also be included
-    #
-    localPools = HasyUtils.getLocalPoolNames()
-    if len( localPools) == 0:
-        allMotors = sorted( allMotors, key=lambda k: k['name'])
-        return 
-        
-    pool = PyTango.DeviceProxy( localPools[0])
-    poolMotors = []
-    if pool.MotorList is None: 
-        allMotors = sorted( allMotors, key=lambda k: k['name'])
-        return 
-
-    for mot in pool.MotorList:
-        poolDct = json.loads( mot)
-        name = poolDct['name']
-        #
-        # devices that are in online.xml are not included via the pool
-        #
-        flagFoundInOnlineXml = False
-        for dev in allDevices:
-            if name == dev[ 'name']:
-                flagFoundInOnlineXml = True
-                break
-
-        if flagFoundInOnlineXml: 
-            continue
-
-        #
-        # if a namePattern is supplied on the command line, 
-        # the motor name has to match
-        #
-        if args.namePattern is not None and len( args.namePattern) > 0: 
-            flagReject = True
-            for mot in args.namePattern:
-                if HasyUtils.match( dev['name'], mot):
-                    #
-                    # do not create doubvle entries in allMotors, 
-                    # remember this selection: m3y m3yaw m3_dmy05 m3_dmy06
-                    # m3y matches m3y AND m3yaw
-                    #
-                    flagReject = False
-                    for devTemp in allMotors:
-                        if dev['name'] == devTemp[ 'name']:
-                            flagReject = True
-            if flagReject: 
-                continue
-
-        #print( "name NOT in motorDict %s \n %s" % (name, repr( poolDct)))
-        #
-        # source: haso107d1:10000/pm/e6cctrl/1/Position
-        #
-        dev = {}
-        dev[ 'name'] = name
-        dev[ 'type'] = 'type_tango'
-        dev[ 'module'] = 'motor_pool'
-        dev[ 'control'] = 'tango'
-        #
-        # source: haso107d1:10000/pm/e6cctrl/1/Position
-        #         tango://haspe212oh.desy.de:10000/motor/dummy_mot_ctrl/1
-        #
-        src = poolDct[ 'source']
-        if src.find( "tango://") == 0:
-            src = src[ 8:]
-        lst = src.split( '/')
-        dev[ 'hostname'] = lst[0]
-            
-        dev[ 'device'] = "/".join( lst[1:-1])
-        dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-        dev[ 'flagPoolMotor'] = True
-        dev[ 'flagOffline'] = False # devices not responding are flagged offline
-        if poolDct[ 'type'] == 'PseudoMotor':
-            dev[ 'flagPseudoMotor'] = True
-        else:
-            dev[ 'flagPseudoMotor'] = False   # exp_dmy01, mu, chi
-
-        dev[ 'proxy'] = createProxy( dev)
-        if dev[ 'proxy'] is None:
-            continue
-        poolMotors.append( dev)
-
-    for dev in poolMotors: 
-        allMotors.append( dev)
-
-    allMotors = sorted( allMotors, key=lambda k: k['name'])
-    return 
-
-def findAllCounters( args):
-    global allCounters, allTangoAttrCtrls, allTangoCounters
-    global allDevices
-    #
-    # read /online_dir/online.xml here because it is also elsewhere
-    #
-    # <device>
-    # <name>d1_c01</name>
-    # <type>counter</type>
-    # <module>sis3820</module>
-    # <device>p09/counter/d1.01</device>
-    # <control>tango</control>
-    # <hostname>haso107d1:10000</hostname>
-    # <channel>1</channel>
-    # </device>
-    #
-    #
-    # for non motors we don't get devices from the pool, 
-    # so use the tags already here
-    #
-    if not allDevices:
-        allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
-        
-    allCounters = []
-    if allDevices:
-        for dev in allDevices:
-            if 'sardananame' in dev:
-                dev[ 'name'] = dev[ 'sardananame']
-
-            if (dev['module'].lower() == 'tangoattributectctrl'):
-                dev[ 'proxy'] = createProxy( dev)
-                if dev[ 'proxy'] is None:
-                    continue
-                dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-                dev[ 'flagOffline'] = False # devices not responding are flagged offline
-                allTangoAttrCtrls.append( dev)
-            elif (dev['module'].lower() == 'counter_tango'):
-                dev[ 'proxy'] = createProxy( dev)
-                if dev[ 'proxy'] is None:
-                    continue
-                dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-                dev[ 'flagOffline'] = False # devices not responding are flagged offline
-                allTangoCounters.append( dev)
-            elif dev['module'].lower() in modulesRoiCounters:
-                dev[ 'proxy'] = createProxy( dev)
-                if dev[ 'proxy'] is None:
-                    continue
-                dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-                dev[ 'flagOffline'] = False # devices not responding are flagged offline
-                allTangoCounters.append( dev)
-            elif (dev['type'].lower() == 'counter'):
-                dev[ 'proxy'] = createProxy( dev)
-                if dev[ 'proxy'] is None:
-                    continue
-                dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-                dev[ 'flagOffline'] = False # devices not responding are flagged offline
-                allCounters.append( dev)
-
-    allCounters = sorted( allCounters, key=lambda k: k['name'])
-    allTangoAttrCtrls = sorted( allTangoAttrCtrls, key=lambda k: k['name'])
-    allTangoCounters = sorted( allTangoCounters, key=lambda k: k['name'])
-
-def findAllTimers( args):
-    global allTimers
-    global allDevices
-    #
-    # read /online_dir/online.xml here because it is also elsewhere
-    #
-    # <device>
-    # <name>d1_t01</name>
-    # <type>timer</type>
-    # <module>dgg2</module>
-    # <device>p09/dgg2/d1.01</device>
-    # <control>tango</control>
-    # <hostname>haso107d1:10000</hostname>
-    # <channel>1</channel>
-    # </device>
-    #
-    #
-    # for non motors we don't get devices from the pool, 
-    # so use the tags already here
-    #
-    if not allDevices:
-        allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
-        
-    #
-    # find the motors and match the tags
-    #
-    allTimers = []
-    if allDevices:
-        for dev in allDevices:
-            if 'sardananame' in dev:
-                dev[ 'name'] = dev[ 'sardananame']
-
-            if (dev['type'].lower() == 'timer'):
-                dev[ 'proxy'] = createProxy( dev)
-                if dev[ 'proxy'] is None:
-                    print( "findAllTimers: No proxy to %s, ignoring this device" % dev[ 'name'])
-                    continue
-                dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-                dev[ 'flagOffline'] = False # devices not responding are flagged offline
-                allTimers.append( dev)
-        
-    allTimers = sorted( allTimers, key=lambda k: k['name'])
-
-def findAllIORegs( args):
-    global allIRegs, allORegs
-    global allDevices
-    #
-    # read /online_dir/online.xml here because it is also elsewhere
-    #
-    #{'control': 'tango', 
-    # 'name': 'd1_mot65', 
-    # 'hostname': 'haso107d1:10000', 
-    # 'module': 'oms58', 
-    # 'device': 'p09/motor/d1.65', 
-    # 'type': 'stepping_motor', 
-    # 'channel': '65'}
-    #
-    #
-    # for non motors we don't get devices from the pool, 
-    # so use the tags already here
-    #
-    if not allDevices:
-        allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
-        
-    #
-    # find the motors and match the tags
-    #
-    allIRegs = []
-    allORegs = []
-    if allDevices:
-        for dev in allDevices:
-            if 'sardananame' in dev:
-                dev[ 'name'] = dev[ 'sardananame']
-
-            if (dev['type'].lower() == 'input_register'):
-                dev[ 'proxy'] = createProxy( dev)
-                if dev[ 'proxy'] is None:
-                    print( "findAllIORegs: No proxy to %s, ignoring this device" % dev[ 'name'])
-                    continue
-                dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-                dev[ 'flagOffline'] = False # devices not responding are flagged offline
-                allIRegs.append( dev)
-
-            if (dev['type'].lower() == 'output_register'):
-                dev[ 'proxy'] = createProxy( dev)
-                if dev[ 'proxy'] is None:
-                    print( "findIORegs: No proxy to %s, ignoring this device" % dev[ 'name'])
-                    continue
-                dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-                dev[ 'flagOffline'] = False # devices not responding are flagged offline
-                allORegs.append( dev)
-        
-    allIRegs = sorted( allIRegs, key=lambda k: k['name'])
-    allORegs = sorted( allORegs, key=lambda k: k['name'])
-
-def findAllAdcDacs( args):
-    global allAdcs, allDacs, allVfcAdcs
-    global allDevices
-    #
-    # read /online_dir/online.xml here because it is also elsewhere
-    #
-    # <device>
-    # <name>d1_adc01</name>
-    # <type>adc</type>
-    # <module>tip850adc</module>
-    # <device>p09/tip850adc/d1.01</device>
-    # <control>tango</control>
-    # <hostname>haso107d1:10000</hostname>
-    # <channel>1</channel>
-    # </device>
-    #
-    # for non motors we don't get devices from the pool, 
-    # so use the tags already here
-    #
-    if not allDevices:
-        allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
-
-    #
-    # find the motors and match the tags
-    #
-    allAdcs = []
-    allVfcAdcs = []
-    allDacs = []
-    if allDevices:
-        for dev in allDevices:
-            if 'sardananame' in dev:
-                dev[ 'name'] = dev[ 'sardananame']
-
-            if (dev['module'].lower() == 'tip830' or \
-                dev['module'].lower() == 'tip850adc'):
-                dev[ 'proxy'] = createProxy( dev)
-                if dev[ 'proxy'] is None:
-                    print( "findAllAdcDacs: No proxy to %s, ignoring this device" % dev[ 'name'])
-                    continue
-                dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-                dev[ 'flagOffline'] = False # devices not responding are flagged offline
-                allAdcs.append( dev)
-
-            if (dev['module'].lower() == 'vfcadc'):
-                dev[ 'proxy'] = createProxy( dev)
-                if dev[ 'proxy'] is None:
-                    print( "findAllAdcDacs: No proxy to %s, ignoring this device" % dev[ 'name'])
-                    continue
-                dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-                dev[ 'flagOffline'] = False # devices not responding are flagged offline
-                allVfcAdcs.append( dev)
-
-            if (dev['module'].lower() == 'tip551' or \
-                dev['module'].lower() == 'tip850dac'):
-                dev[ 'proxy'] = createProxy( dev)
-                if dev[ 'proxy'] is None:
-                    print( "findAdcDacs: No proxy to %s, ignoring this device" % dev[ 'name'])
-                    continue
-                dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-                dev[ 'flagOffline'] = False # devices not responding are flagged offline
-                allDacs.append( dev)
-        
-    allAdcs = sorted( allAdcs, key=lambda k: k['name'])
-    allVfcAdcs = sorted( allVfcAdcs, key=lambda k: k['name'])
-    allDacss = sorted( allDacs, key=lambda k: k['name'])
-
-def findAllMCAs( args):
-    global allMCAs
-    global allDevices
-    #
-    # read /online_dir/online.xml here because it is also elsewhere
-    #
-    #
-    # <device>
-    # <name>d1_mca01</name>
-    # <type>mca</type>
-    # <module>mca_8701</module>
-    # <device>p09/mca/d1.01</device>
-    # <control>tango</control>
-    # <hostname>haso107d1:10000</hostname>
-    # <channel>1</channel>
-    # </device>
-    #
-    #
-    # for non motors we don't get devices from the pool, 
-    # so use the tags already here
-    #
-    if not allDevices:
-        allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
-
-    if not allDevices:
-        return
-    #
-    # find the motors and match the tags
-    #
-    allMCAs = []
-    for dev in allDevices:
-        if 'sardananame' in dev:
-            dev[ 'name'] = dev[ 'sardananame']
-
-        if (dev['module'].lower() == 'mca_8701'):
-            dev[ 'proxy'] = createProxy( dev)
-            if dev[ 'proxy'] is None:
-                print( "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name'])
-                continue
-            dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-            dev[ 'flagOffline'] = False # devices not responding are flagged offline
-            allMCAs.append( dev)
-        
-    allMCAs = sorted( allMCAs, key=lambda k: k['name'])
-
-def findAllCameras( args):
-    global allCameras
-    global allDevices
-    #
-    # read /online_dir/online.xml here because it is also elsewhere
-    #
-    #
-    # <device>
-    # <name>lmbd</name>
-    # <sardananame>lmbd</sardananame>
-    # <type>DETECTOR</type>
-    # <module>lambda</module>
-    # <device>p23/lambda/01</device>
-    # <control>tango</control>
-    # <hostname>hasep23oh:10000</hostname>
-    # </device>
-    #
-    #
-    # for non motors we don't get devices from the pool, 
-    # so use the tags already here
-    #
-    if not allDevices:
-        allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
-
-    if not allDevices:
-        return
-    #
-    # find the motors and match the tags
-    #
-    allCameras = []
-    for dev in allDevices:
-        if 'sardananame' in dev:
-            dev[ 'name'] = dev[ 'sardananame']
-
-        if dev['module'].lower() in cameraNames: 
-            dev[ 'proxy'] = createProxy( dev)
-            if dev[ 'proxy'] is None:
-                print( "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name'])
-                continue
-            dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-            dev[ 'flagOffline'] = False # devices not responding are flagged offline
-            allCameras.append( dev)
-        
-    allCameras = sorted( allCameras, key=lambda k: k['name'])
-
-def findAllPiLCModules( args):
-    global allPiLCModules
-    global allDevices
-
-    #
-    # for non motors we don't get devices from the pool, 
-    # so use the tags already here
-    #
-    if not allDevices:
-        allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
-
-    if not allDevices:
-        return
-    #
-    # find the motors and match the tags
-    #
-    allPiLCModules = []
-    for dev in allDevices:
-        if 'sardananame' in dev:
-            dev[ 'name'] = dev[ 'sardananame']
-
-        if dev['module'].lower() in PiLCModuleNames: 
-            dev[ 'proxy'] = createProxy( dev)
-            if dev[ 'proxy'] is None:
-                print( "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name'])
-                continue
-            dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-            dev[ 'flagOffline'] = False # devices not responding are flagged offline
-            allPiLCModules.append( dev)
-        
-    allPiLCModules = sorted( allPiLCModules, key=lambda k: k['name'])
-
-def findAllModuleTangos( args):
-    global allModuleTangos
-    global allDevices
-
-    #
-    # for non motors we don't get devices from the pool, 
-    # so use the tags already here
-    #
-    if not allDevices:
-        allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
-
-    if not allDevices:
-        return
-    #
-    # find the motors and match the tags
-    #
-    allModuleTangos = []
-    for dev in allDevices:
-        if 'sardananame' in dev:
-            dev[ 'name'] = dev[ 'sardananame']
-
-        if dev['module'].lower() == 'module_tango':
-            dev[ 'proxy'] = createProxy( dev)
-            if dev[ 'proxy'] is None:
-                print( "findModuleTangos: No proxy to %s, ignoring this device" % dev[ 'name'])
-                continue
-            dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-            dev[ 'flagOffline'] = False # devices not responding are flagged offline
-            allModuleTangos.append( dev)
-        
-    allModuleTangos = sorted( allModuleTangos, key=lambda k: k['name'])
-
-
-def findAllMGs( args):
-    global allMGs
-    global allDevices
-
-    #
-    # for non motors we don't get devices from the pool, 
-    # so use the tags already here
-    #
-    if not allDevices:
-        allDevices = HasyUtils.getOnlineXML( cliTags = args.tags)
-
-    if not allDevices:
-        return
-    #
-    # find the motors and match the tags
-    #
-    allMGs = []
-    for dev in allDevices:
-        if 'sardananame' in dev:
-            dev[ 'name'] = dev[ 'sardananame']
-
-        if dev['type'].lower() == 'measurement_group':
-            dev[ 'proxy'] = createProxy( dev)
-            if dev[ 'proxy'] is None:
-                print( "findAllMGs: No proxy to %s, ignoring this device" % dev[ 'name'])
-                continue
-            dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
-            dev[ 'flagOffline'] = False # devices not responding are flagged offline
-            allMGs.append( dev)
-        
-
-    mgAliases = HasyUtils.getMgAliases()
-    if mgAliases is None: 
-        allMGs = sorted( allMGs, key=lambda k: k['name'])
-        return 
-
-    for mg in mgAliases:
-        flag = False
-        #
-        # see which group we already have
-        #
-        for dev in allMGs:
-            if mg.lower() == dev[ 'name']:
-                flag = True
-                break
-        if flag: 
-            continue
-        dev = {}
-        dev[ 'name'] = mg.lower()
-        dev[ 'device'] = 'None'
-        dev[ 'module'] = 'None'
-        dev[ 'type'] = 'measurement_group'
-        dev[ 'hostname'] = "%s:10000" % os.getenv( "TANGO_HOST")
-        dev[ 'proxy'] = createProxy( dev)
-        if dev[ 'proxy'] is None:
-            print( "findAllMGs: No proxy to %s, ignoring this device" % dev[ 'name'])
-            continue
-        allMGs.append( dev)
-
-    allMGs = sorted( allMGs, key=lambda k: k['name'])
-
-def createProxy( dev):
-
-    try:
-        #print( "createProxy %s/%s, %s" % (dev[ 'hostname'], dev[ 'device'], dev[ 'name']))
-        #
-        #  <device>p08/sis3302/exp.01/1</device>
-        #
-        if (len( dev[ 'device'].split('/')) == 4 or 
-            dev[ 'module'].lower() == 'tangoattributectctrl' or 
-            dev[ 'type'].lower() == 'measurement_group'):
-            proxy = PyTango.DeviceProxy(  "%s" % (dev[ 'name']))
-        else:
-            proxy = PyTango.DeviceProxy(  "%s/%s" % (dev[ 'hostname'], dev[ 'device']))
-        #
-        # state() generates an exception, to see whether the server is actually running
-        #
-        startTime = time.time()
-        sts = proxy.state() 
-    except Exception as e:
-        print( "createProxy: no proxy to %s, flagging 'offline' " % dev[ 'name']   )
-        dev[ 'flagOffline'] = True
-        #for arg in e.args:
-        #    if hasattr( arg, 'desc'):
-        #        print( " desc:   %s" % arg.desc )
-        #        print( " origin: %s" % arg.origin)
-        #        print( " reason: %s" % arg.reason)
-        #        print( "")
-        #    else:
-        #        print( repr( e))
-        proxy = None
-
-    return proxy

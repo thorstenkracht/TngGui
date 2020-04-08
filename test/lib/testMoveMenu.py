@@ -10,7 +10,9 @@ import sys, time, os
 import unittest
 import tngGui.lib.tngGuiClass
 import PyTango
-from taurus.external.qt import QtGui, QtCore 
+#from taurus.external.qt import QtGui, QtCore 
+from PyQt4 import QtCore, QtGui
+import tngGui.lib.devices as devices
 
 mainWidget = None 
 dev65 = None
@@ -34,10 +36,12 @@ class testMoveMenu( unittest.TestCase):
 
         args = dummy()
 
+        devs = devices.Devices( None)
+
         mainWidget = tngGui.lib.tngGuiClass.mainMenu( args)
 
         dev65 = None
-        for d in tngGui.lib.tngGuiClass.selectedMotors:
+        for d in devs.allMotors:
             if d[ 'name'] == 'eh_mot65':
                 dev65 = d
                 break

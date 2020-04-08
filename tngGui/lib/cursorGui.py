@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from taurus.external.qt import QtGui, QtCore 
+#from taurus.external.qt import QtGui, QtCore 
+from PyQt4 import QtCore, QtGui
 import PyTango
 import math, sys, os
 import HasyUtils
