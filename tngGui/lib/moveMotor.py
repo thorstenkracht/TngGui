@@ -7,8 +7,7 @@ import PyTango
 import math, time, sys, os
 import definitions, utils, HasyUtils
 import tngAPI, cursorGui
-import PySpectra.dMgt.GQE as GQE
-import PySpectra.misc.graPyspIfc as graPyspIfc
+import PySpectra.graPyspIfc as graPyspIfc
 import tngGui.lib.deviceAttributes as deviceAttributes
 import tngGui.lib.deviceProperties as deviceProperties
 import tngGui.lib.deviceCommands as deviceCommands
@@ -59,6 +58,11 @@ class moveMotor( QtGui.QMainWindow):
     def __init__( self, dev, devices, logWidget, app = None, parent = None):
         super( moveMotor, self).__init__( parent)
 
+        if dev[ 'name'].upper() in [ 'EXP_DMY01', 'EXP_DMY02', 'EXP_DMY03']: 
+            raise ValueError( "MoveMotor: not for dummy motors")
+
+        if PySpectra.InfoBlock.monitorGui is None:
+            PySpectra.InfoBlock.setMonitorGui( self)
         self.dev = dev
         self.devices = devices
         self.logWidget = logWidget
@@ -93,6 +97,7 @@ class moveMotor( QtGui.QMainWindow):
         self.flagClosed = False
         self.flagOffline = False
         self.pyspGui = None
+
         #
         # we don't want to getSignal(), if a motor is moved from another
         # application, like spock
@@ -108,6 +113,7 @@ class moveMotor( QtGui.QMainWindow):
 
         self.motorProxy = dev[ 'proxy']
         self.slewRateFactor = 1.
+
         #
         # store the original motor attributes
         #
@@ -990,7 +996,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         self.updateWidgets()
 
         if self.scan is not None: 
-            self.scan.updateArrowMotorCurrent()
+            self.scan.updateArrowCurrent()
 
         if not self.flagDisplaySignal:
             return
@@ -1079,8 +1085,8 @@ Btw: Key_Up/Down change the slew rate. <br>"
             self.scan.sort()
         self.scan.autoscale()
         self.scan.display()
-        if self.scan.arrowMotorCurrent is not None:
-            self.scan.updateArrowMotorCurrent()
+        if self.scan.arrowCurrent is not None:
+            self.scan.updateArrowCurrent()
         self.lastX = x
 
         self.updateTimer.start( definitions.TIMEOUT_REFRESH_MOTOR)

@@ -15,7 +15,7 @@ import tngGui.lib.deviceProperties as deviceProperties
 import tngGui.lib.deviceCommands as deviceCommands
 import tngGui.lib.macroServerIfc as macroServerIfc
 import tngGui.lib.utils as utils
-import PySpectra.misc.graPyspIfc as graPyspIfc
+import PySpectra.graPyspIfc as graPyspIfc
 import tngGui.lib.definitions as definitions
 import tngGui.lib.devices as devices
 import PySpectra.pySpectraGuiClass
@@ -56,6 +56,9 @@ class mainMenu( QtGui.QMainWindow):
     def __init__( self, args = None, app = None, parent = None):
         super( mainMenu, self).__init__( parent)
         self.setWindowTitle( "TngGui")
+
+        if PySpectra.InfoBlock.monitorGui is None:
+            PySpectra.InfoBlock.setMonitorGui( self)
 
         self.args = args        
         self.devices = devices.Devices( args = args, xmlFile = None, parent = self)
@@ -1680,6 +1683,12 @@ class mainMenu( QtGui.QMainWindow):
 
     def make_cb_move( self, dev, logWidget):
         def cb():
+
+            if dev[ 'name'].upper() in [ 'EXP_DMY01', 'EXP_DMY02', 'EXP_DMY03']: 
+                if logWidget is not None: 
+                    logWidget.append( "tngGuiClass: MoveMotor not for dummy motors")
+                else:
+                    raise ValueError( "tngGuiClass: MoveMotor not for dummy motors")
 
             if self.w_moveMotor is not None:
                 self.w_moveMotor.close()

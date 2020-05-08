@@ -2,7 +2,7 @@
 
 import argparse, sys, os, time
 import tngGui.lib.tngGuiClass
-import PySpectra.misc.graPyspIfc as graPyspIfc
+import PySpectra.graPyspIfc as graPyspIfc
 import tngGui.lib.devices as devices
 #from taurus.external.qt import QtGui, QtCore 
 from PyQt4 import QtCore, QtGui
@@ -80,7 +80,7 @@ def main():
     devs = devices.Devices( args)
 
     if len( devs.allMotors) == 1:
-        w = tngGui.lib.tngGuiClass.launchMoveMotor( devs, app)
+        w = tngGui.lib.tngGuiClass.launchMoveMotor( devs.allMotors[0], devs, app)
         w.show()
     else: 
         mainW = tngGui.lib.tngGuiClass.mainMenu(args, app)
