@@ -167,6 +167,9 @@ class deviceAttributes( QtGui.QMainWindow):
 
     def fillAttributes( self): 
         count = 0
+        #
+        # for selected attributes
+        #
         self.attrInfoList = self.getAttrInfoList()
 
         self.attrDct = {}
@@ -177,6 +180,7 @@ class deviceAttributes( QtGui.QMainWindow):
         splitNo = len( self.attrInfoList)
         if len( self.attrInfoList) > 10:
             splitNo = math.ceil( len( self.attrInfoList)/2.)
+
 
         for attrInfo in self.attrInfoList:
             #if not hasattr( self.dev[ 'proxy'], attrInfo.name.lower()) and attrInfo.name.find( "ROI") != 0: 

@@ -90,7 +90,6 @@ class mainMenu( QtGui.QMainWindow):
         ret = os.popen( "hostname").read()
         self.hostName = ret.strip()
 
-
         self.prepareWidgets()
 
         self.prepareMenuBar()
@@ -710,8 +709,10 @@ class mainMenu( QtGui.QMainWindow):
             sts = os.system( "xterm -e /usr/bin/spock &")
 
     def cb_launchPyspGui( self):
-        self.pyspGui = PySpectra.pySpectraGuiClass.pySpectraGui()
-        self.pyspGui.show()
+        if self.pyspGui is None: 
+            self.pyspGui = PySpectra.pySpectraGuiClass.pySpectraGui()
+            self.pyspGui.show()
+        return 
 
     def cb_launchPyspMonitor( self):
         os.system( "/usr/bin/pyspMonitor.py &")
@@ -1153,8 +1154,8 @@ class mainMenu( QtGui.QMainWindow):
         layout_grid = QtGui.QGridLayout()
 
         layout_grid.addWidget( QtGui.QLabel( "Alias"), 0, 0)
-        layout_grid.addWidget( QtGui.QLabel( "Module"), 0, 1)
-        layout_grid.addWidget( QtGui.QLabel( "DeviceName"), 0, 2)
+        layout_grid.addWidget( QtGui.QLabel( "Module"), 0, 2)
+        layout_grid.addWidget( QtGui.QLabel( "DeviceName"), 0, 3)
 
         #
         # <device>
@@ -1177,18 +1178,23 @@ class mainMenu( QtGui.QMainWindow):
                 aliasName.mb3.connect( self.make_cb_properties( dev, self.logWidget)) 
                 layout_grid.addWidget( aliasName, count, 0)
 
+            readMCA = utils.QPushButtonTK( 'Display')
+            readMCA.setToolTip( "MB-1: Clear, read, display")
+            readMCA.mb1.connect( self.make_cb_readMCA( dev, self.logWidget))
+            layout_grid.addWidget( readMCA, count, 1)
+            
             moduleName = QtGui.QLabel()
             moduleName.setText( "%s" % (dev['module']))
             moduleName.setAlignment( QtCore.Qt.AlignLeft)
             moduleName.setFixedWidth( definitions.POSITION_WIDTH)
-            layout_grid.addWidget( moduleName, count, 1 )
+            layout_grid.addWidget( moduleName, count, 2 )
             #
             # device name
             #
             devName = QtGui.QLabel()
             devName.setText( "%s/%s" % (dev['hostname'], dev['device']))
             devName.setAlignment( QtCore.Qt.AlignLeft)
-            layout_grid.addWidget( devName, count, 2 )
+            layout_grid.addWidget( devName, count, 3 )
             
             count += 1
 
@@ -1778,6 +1784,30 @@ class mainMenu( QtGui.QMainWindow):
             self.w_encAttr = deviceAttributes.motorEncAttributes( dev, logWidget, self)
             self.w_encAttr.show()
             return self.w_encAttr
+        return cb
+
+    def make_cb_readMCA( self, dev, logWidget):
+        def cb():
+            proxy = dev[ 'proxy']
+            try:
+                sts = proxy.state()
+            except Exception as e:
+                utils.ExceptionToLog( e, self.logWidget)
+                QtGui.QMessageBox.critical(self, 'Error', 
+                                           "cb_readMCA: %s, device is offline" % dev[ 'name'], 
+                                           QtGui.QMessageBox.Ok)
+                return 
+            PySpectra.cls()
+            PySpectra.delete()
+            proxy.clear()
+            proxy.read()
+            PySpectra.Scan( name =  dev[ 'name'], 
+                            y = proxy.data)
+            PySpectra.display()
+            if self.pyspGui is None: 
+                self.pyspGui = PySpectra.pySpectraGuiClass.pySpectraGui()
+                self.pyspGui.show()
+            return 
         return cb
 
 
