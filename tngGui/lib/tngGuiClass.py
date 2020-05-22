@@ -709,9 +709,15 @@ class mainMenu( QtGui.QMainWindow):
             sts = os.system( "xterm -e /usr/bin/spock &")
 
     def cb_launchPyspGui( self):
+        #
+        # one pyspViewer GUI is enough
+        #
         if self.pyspGui is None: 
             self.pyspGui = PySpectra.pySpectraGuiClass.pySpectraGui()
             self.pyspGui.show()
+        else: 
+            self.pyspGui.raise_()
+            self.pyspGui.activateWindow()
         return 
 
     def cb_launchPyspMonitor( self):
@@ -1804,9 +1810,7 @@ class mainMenu( QtGui.QMainWindow):
             PySpectra.Scan( name =  dev[ 'name'], 
                             y = proxy.data)
             PySpectra.display()
-            if self.pyspGui is None: 
-                self.pyspGui = PySpectra.pySpectraGuiClass.pySpectraGui()
-                self.pyspGui.show()
+            self.cb_launchPyspGui()
             return 
         return cb
 
