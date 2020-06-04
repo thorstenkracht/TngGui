@@ -203,6 +203,7 @@ class deviceCommands( QtGui.QMainWindow):
                     print( "make_cb_command: need to implement %s" % repr( commandInfo.in_type))
                     return
             except Exception as e:
+                self.logWidget.append( "exception executing %s() on %s" % (commandInfo.cmd_name, self.dev[ 'name']))
                 utils.ExceptionToLog( e, self.logWidget)
                 QtGui.QMessageBox.critical(self, 'Error', 
                                            "make_cb_command: %s, %s" % (self.dev[ 'name'], repr(e)), 
@@ -212,6 +213,7 @@ class deviceCommands( QtGui.QMainWindow):
             if line is not None:
                 line.clear()
 
+            self.logWidget.append( "%s: %s(), reply %s" % (self.dev[ 'name'], commandInfo.cmd_name, repr( reply)))
             self.replyLabel.setText( "Reply: %s" % repr( reply))
             return 
 

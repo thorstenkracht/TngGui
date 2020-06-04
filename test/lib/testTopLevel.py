@@ -200,7 +200,7 @@ class testTopLevel( unittest.TestCase):
         devs = devices.Devices( args = args, xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
         self.assertEqual( len( devs.allMotors), 19)
 
-        dct = { 'allIRegs': 16, 'allMCAs': 4, 'allMGs': 9, 'allModuleTangos': 1, 
+        dct = { 'allIRegs': 16, 'allMCAs': 4, 'allMGs': 8, 'allModuleTangos': 1, 
                 'allMotors': 19, 'allORegs': 16, 'allPiLCModules': 0, 'allTangoAttrCtrls': 12, 
                 'allTangoCounters': 4, 'allTimers': 4, 'allVfcAdcs': 8}
 
@@ -210,7 +210,7 @@ class testTopLevel( unittest.TestCase):
         for k in list( dct.keys()):
             com = "length = len( devs.%s)" % k
             exec com
-            #print( "testToplevel.testDevices: len( %s): %d %d" % (k, length, dct[ k]))
+            print( "testToplevel.testDevices: len( %s): %d %d" % (k, length, dct[ k]))
             self.assertEqual( length, dct[ k])
         return 
 

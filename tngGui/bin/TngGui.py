@@ -6,6 +6,7 @@ import PySpectra.graPyspIfc as graPyspIfc
 import tngGui.lib.devices as devices
 #from taurus.external.qt import QtGui, QtCore 
 from PyQt4 import QtCore, QtGui
+import tngGui.lib.mcaWidget as mcaWidget
         
 def parseCLI():
     parser = argparse.ArgumentParser( 
@@ -30,6 +31,7 @@ Examples:
     parser.add_argument( 'namePattern', nargs='*', help='pattern to match the motor names, not applied to other devices')
     #parser.add_argument( '-c', dest='counterName', nargs='?', help='signal counter')
     #parser.add_argument( '-t', dest='timerName', nargs='?', help='signal timer')
+    parser.add_argument( '--mca', dest='mca', action="store_true", help='start the MCA widget')
     parser.add_argument( '-t', dest='tags', nargs='?', help='tags matching online.xml tags')
     #parser.add_argument( '-l', dest="list", action="store_true", help='list server and devices')
     #parser.add_argument( '-p', dest="pysp", action="store_true", help='use PySpectra for graphics')
@@ -79,12 +81,16 @@ def main():
 
     devs = devices.Devices( args)
 
-    if len( devs.allMotors) == 1:
-        w = tngGui.lib.tngGuiClass.launchMoveMotor( devs.allMotors[0], devs, app)
+    if args.mca:
+        w = mcaWidget.mcaWidget( devices = devs, app = app)
         w.show()
-    else: 
-        mainW = tngGui.lib.tngGuiClass.mainMenu(args, app)
-        mainW.show()
+    else:
+        if len( devs.allMotors) == 1:
+            w = tngGui.lib.tngGuiClass.launchMoveMotor( devs.allMotors[0], devs, app)
+            w.show()
+        else: 
+            mainW = tngGui.lib.tngGuiClass.mainMenu(args, app)
+            mainW.show()
 
     try:
         sys.exit( app.exec_())

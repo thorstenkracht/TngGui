@@ -14,6 +14,7 @@ import tngGui.lib.deviceAttributes as deviceAttributes
 import tngGui.lib.deviceProperties as deviceProperties
 import tngGui.lib.deviceCommands as deviceCommands
 import tngGui.lib.macroServerIfc as macroServerIfc
+import tngGui.lib.mcaWidget as mcaWidget
 import tngGui.lib.utils as utils
 import PySpectra.graPyspIfc as graPyspIfc
 import tngGui.lib.definitions as definitions
@@ -163,12 +164,15 @@ class mainMenu( QtGui.QMainWindow):
         self.toolsMenu = self.menuBar.addMenu('&Tools')
         self.nxselectorAction = QtGui.QAction('Nxselector', self)        
         self.nxselectorAction.triggered.connect( self.cb_launchNxselector)
+        self.toolsMenu.addAction( self.nxselectorAction)
 
         self.motorMonitorAction = QtGui.QAction('SardanaMotorMonitor', self)        
         self.motorMonitorAction.triggered.connect( self.cb_launchMotorMonitor)
+        self.toolsMenu.addAction( self.motorMonitorAction)
 
         self.sardanaMonitorAction = QtGui.QAction('SardanaMonitor', self)        
         self.sardanaMonitorAction.triggered.connect( self.cb_launchSardanaMonitor)
+        self.toolsMenu.addAction( self.sardanaMonitorAction)
 
         self.spockAction = QtGui.QAction('Spock', self)        
         self.spockAction.triggered.connect( self.cb_launchSpock)
@@ -190,11 +194,13 @@ class mainMenu( QtGui.QMainWindow):
 
         self.macroguiAction = QtGui.QAction('Macrogui', self)        
         self.macroguiAction.triggered.connect( self.cb_launchMacrogui)
-
-        self.toolsMenu.addAction( self.nxselectorAction)
-        self.toolsMenu.addAction( self.sardanaMonitorAction)
-        self.toolsMenu.addAction( self.motorMonitorAction)
         self.toolsMenu.addAction( self.macroguiAction)
+
+        self.mcaAction = QtGui.QAction('MCA', self)        
+        self.mcaAction.triggered.connect( self.cb_launchMCA)
+        self.toolsMenu.addAction( self.mcaAction)
+
+
         #self.toolsMenu.addAction( self.spectraAction)
 
         #
@@ -353,6 +359,11 @@ class mainMenu( QtGui.QMainWindow):
             self.mgTableAction = QtGui.QAction('MGs', self)        
             self.mgTableAction.triggered.connect( self.cb_mgTable)
             self.tableMenu.addAction( self.mgTableAction)
+
+        if len( self.devices.allMacroServers) > 0:
+            self.msTableAction = QtGui.QAction('MSs', self)        
+            self.msTableAction.triggered.connect( self.cb_msTable)
+            self.tableMenu.addAction( self.msTableAction)
 
         #
         # the activity menubar: help and activity
@@ -720,6 +731,12 @@ class mainMenu( QtGui.QMainWindow):
             self.pyspGui.activateWindow()
         return 
 
+    def cb_launchMCA( self): 
+        self.mcaWidget = mcaWidget.mcaWidget( devices = self.devices, 
+                                              logWidget = self.logWidget, 
+                                              app = self.app, parent = self)
+        self.mcaWidget.show()
+        
     def cb_launchPyspMonitor( self):
         os.system( "/usr/bin/pyspMonitor.py &")
 
@@ -1160,8 +1177,8 @@ class mainMenu( QtGui.QMainWindow):
         layout_grid = QtGui.QGridLayout()
 
         layout_grid.addWidget( QtGui.QLabel( "Alias"), 0, 0)
-        layout_grid.addWidget( QtGui.QLabel( "Module"), 0, 2)
-        layout_grid.addWidget( QtGui.QLabel( "DeviceName"), 0, 3)
+        layout_grid.addWidget( QtGui.QLabel( "Module"), 0, 1)
+        layout_grid.addWidget( QtGui.QLabel( "DeviceName"), 0, 2)
 
         #
         # <device>
@@ -1184,23 +1201,18 @@ class mainMenu( QtGui.QMainWindow):
                 aliasName.mb3.connect( self.make_cb_properties( dev, self.logWidget)) 
                 layout_grid.addWidget( aliasName, count, 0)
 
-            readMCA = utils.QPushButtonTK( 'Display')
-            readMCA.setToolTip( "MB-1: Clear, read, display")
-            readMCA.mb1.connect( self.make_cb_readMCA( dev, self.logWidget))
-            layout_grid.addWidget( readMCA, count, 1)
-            
             moduleName = QtGui.QLabel()
             moduleName.setText( "%s" % (dev['module']))
             moduleName.setAlignment( QtCore.Qt.AlignLeft)
             moduleName.setFixedWidth( definitions.POSITION_WIDTH)
-            layout_grid.addWidget( moduleName, count, 2 )
+            layout_grid.addWidget( moduleName, count, 1 )
             #
             # device name
             #
             devName = QtGui.QLabel()
             devName.setText( "%s/%s" % (dev['hostname'], dev['device']))
             devName.setAlignment( QtCore.Qt.AlignLeft)
-            layout_grid.addWidget( devName, count, 3 )
+            layout_grid.addWidget( devName, count, 2 )
             
             count += 1
 
@@ -1805,8 +1817,16 @@ class mainMenu( QtGui.QMainWindow):
                 return 
             PySpectra.cls()
             PySpectra.delete()
-            proxy.clear()
-            proxy.read()
+            try: 
+                proxy.read()
+            except Exception as e: 
+                self.logWidget.append( "cb_readMCA: read() threw an exception")
+                utils.ExceptionToLog( e, self.logWidget)
+                for arg in e.args: 
+                    if arg.desc.find( 'busy') != -1:
+                        self.logWidget.append( "consider to execute stop() on the MCA first")
+                        break
+                return 
             PySpectra.Scan( name =  dev[ 'name'], 
                             y = proxy.data)
             PySpectra.display()
