@@ -142,7 +142,8 @@ class deviceProperties( QtGui.QMainWindow):
 
 
     def cb_launchAttributes( self):
-        self.w_attr = deviceAttributes( self.dev, self.logWidget, self)
+        import tngGui.lib.deviceAttributes as deviceAttributes
+        self.w_attr = deviceAttributes.deviceAttributes( self.dev, self.logWidget, self)
         self.w_attr.show()
         return 
 
@@ -150,7 +151,8 @@ class deviceProperties( QtGui.QMainWindow):
         # 
         # remove 'self.' to allow for one widget only
         # 
-        self.w_commands = deviceCommands( self.dev, self.logWidget, self)
+        import tngGui.lib.deviceCommands as deviceCommands
+        self.w_commands = deviceCommands.deviceCommands( self.dev, self.logWidget, self)
         self.w_commands.show()
         return 
         
@@ -172,6 +174,9 @@ class deviceProperties( QtGui.QMainWindow):
             lenMax = 0
             for prop in self.props:
                 propValue = HasyUtils.getDeviceProperty( self.dev[ 'device'], prop, self.dev[ 'hostname'])
+                if propValue is None:
+                    print( "deviceProperties, %s %s %s has value None" % ( self.dev[ 'device'], self.dev[ 'hostname'], prop))
+                    continue
                 if len( propValue) == 1:
                     if len( str( propValue[0])) > lenMax:
                         lenMax = len( str( propValue[0]))
@@ -189,6 +194,9 @@ class deviceProperties( QtGui.QMainWindow):
         for prop in self.props:
             w_value = self.propDct[ prop][ "w_value"]
             propValue = HasyUtils.getDeviceProperty( self.dev[ 'device'], prop, self.dev[ 'hostname'])
+            if propValue is None:
+                print( "deviceProperties (1), %s %s %s has value None" % ( self.dev[ 'device'], self.dev[ 'hostname'], prop))
+                continue
             if len( propValue) == 0:
                 w_value.setText( "None")
             elif len( propValue) == 1:

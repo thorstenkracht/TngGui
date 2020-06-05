@@ -66,6 +66,7 @@ class testMoveMenu( unittest.TestCase):
 
     def testMoveMenu( self):
 
+        print( "testMoveMenu.testeMoveMenu, start")
         w_defSig = moveWidget.cb_defineSignal()
         self.waitSomeTime( 1.0)
         w_defSig.close()
@@ -95,6 +96,8 @@ class testMoveMenu( unittest.TestCase):
         moveWidget.moveTarget( pos - 1)
         moveWidget.logWidget.append( "moving back to %g" % (pos))
         moveWidget.moveTarget( pos)
+
+        print( "testMoveMenu.testeMoveMenu, DONE")
 
     def testMoveToLine( self):
         #

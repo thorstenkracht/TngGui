@@ -10,9 +10,6 @@ import tngGui.lib.helpBox as helpBox
 import tngGui.lib.defineSignal as defineSignal 
 import tngGui.lib.moveMotor as moveMotor
 import tngGui.lib.tngAPI as tngAPI
-import tngGui.lib.deviceAttributes as deviceAttributes
-import tngGui.lib.deviceProperties as deviceProperties
-import tngGui.lib.deviceCommands as deviceCommands
 import tngGui.lib.macroServerIfc as macroServerIfc
 import tngGui.lib.mcaWidget as mcaWidget
 import tngGui.lib.utils as utils
@@ -206,72 +203,50 @@ class mainMenu( QtGui.QMainWindow):
         #
         # Files
         #
-        self.miscMenu = self.menuBar.addMenu('Files')
+        self.filesMenu = self.menuBar.addMenu('Files')
         self.editOnlineXmlAction = QtGui.QAction('online.xml', self)        
         self.editOnlineXmlAction.setStatusTip('Edit /online_dir/online.xml')
         self.editOnlineXmlAction.triggered.connect( self.cb_editOnlineXml)
-        self.miscMenu.addAction( self.editOnlineXmlAction)
+        self.filesMenu.addAction( self.editOnlineXmlAction)
 
         self.editTangoDumpLisAction = QtGui.QAction('TangoDump.lis', self)        
         self.editTangoDumpLisAction.setStatusTip('Edit /online_dir/TangoDump.lis')
         self.editTangoDumpLisAction.triggered.connect( self.cb_editTangoDumpLis)
-        self.miscMenu.addAction( self.editTangoDumpLisAction)
+        self.filesMenu.addAction( self.editTangoDumpLisAction)
 
         self.editMotorLogLisAction = QtGui.QAction('motorLog.lis', self)        
         self.editMotorLogLisAction.setStatusTip('Edit /online_dir/MotorLogs/motorLog.lis')
         self.editMotorLogLisAction.triggered.connect( self.cb_editMotorLogLis)
-        self.miscMenu.addAction( self.editMotorLogLisAction)
+        self.filesMenu.addAction( self.editMotorLogLisAction)
 
         self.editIpythonLogAction = QtGui.QAction('/online_dir/ipython_log.py', self)        
         self.editIpythonLogAction.triggered.connect( self.cb_editIpythonLog)
-        self.miscMenu.addAction( self.editIpythonLogAction)
+        self.filesMenu.addAction( self.editIpythonLogAction)
 
-        self.editSardanaConfigAction = self.miscMenu.addAction(self.tr("SardanaConfig.py"))   
+        self.editSardanaConfigAction = self.filesMenu.addAction(self.tr("SardanaConfig.py"))   
         self.editSardanaConfigAction.setStatusTip('Edit /online_dir/SardanaConfig.py (executed at the end of SardanaAIO.py)')
         self.editSardanaConfigAction.triggered.connect( self.cb_editSardanaConfig)
 
         self.edit00StartAction = QtGui.QAction('00-start.py', self)  
         self.edit00StartAction.setStatusTip('Edit the Spock startup file')
         self.edit00StartAction.triggered.connect( self.cb_edit00Start)
-        self.miscMenu.addAction( self.edit00StartAction)
+        self.filesMenu.addAction( self.edit00StartAction)
 
         self.editMacroServerPropertiesAction = QtGui.QAction('MacroServer-Properties', self)  
         self.editMacroServerPropertiesAction.setStatusTip('Copies /online_dir/MacroServer/macroserver.properties into a temporary file and launches an editor')
         self.editMacroServerPropertiesAction.triggered.connect( self.cb_editMacroServerProperties)
-        self.miscMenu.addAction( self.editMacroServerPropertiesAction)
+        self.filesMenu.addAction( self.editMacroServerPropertiesAction)
 
         self.editMacroServerEnvironmentAction = QtGui.QAction('MacroServer Environment', self)  
         self.editMacroServerEnvironmentAction.setStatusTip('Stores the MacroServer environment in a temporary file and launches an editor')
         self.editMacroServerEnvironmentAction.triggered.connect( self.cb_editMacroServerEnvironment)
-        self.miscMenu.addAction( self.editMacroServerEnvironmentAction)
+        self.filesMenu.addAction( self.editMacroServerEnvironmentAction)
 
         #
-        # "/tmp/tango-%s/MacroServer/%s/log.txt" %  (tangoUser, hostName)
+        # LogFiles
         #
-        self.editMacroServerLogTxtAction = QtGui.QAction( "/tmp/tango-%s/MacroServer/%s/log.txt" %  
-                                                          (self.tangoUser, self.hostName), self)  
-        self.editMacroServerLogTxtAction.triggered.connect( self.cb_editMacroServerLogTxt)
-        self.miscMenu.addAction( self.editMacroServerLogTxtAction)
-
-        #
-        # "/var/tmp/ds.log/MacroServer_%s.log" %  (hostName)
-        #
-        self.editMacroServerLogAction = QtGui.QAction( "/var/tmp/ds.log/MacroServer_%s.log" % (self.hostName), self)  
-        self.editMacroServerLogAction.triggered.connect( self.cb_editMacroServerLogLog)
-        self.miscMenu.addAction( self.editMacroServerLogAction)
-
-        #
-        # "/tmp/tango-%s/Pool/%s/log.txt" %  (tangoUser, hostName)
-        #
-        self.editPoolLogTxtAction = QtGui.QAction( "/tmp/tango-%s/Pool/%s/log.txt" %  ( self.tangoUser, self.hostName), self)  
-        self.editPoolLogTxtAction.triggered.connect( self.cb_editPoolLogTxt)
-        self.miscMenu.addAction( self.editPoolLogTxtAction)
-        #
-        # "/var/tmp/ds.log/Pool_%s.log" %  (hostName)
-        #
-        self.editPoolLogLogAction = QtGui.QAction( "/var/tmp/ds.log/Pool_%s.log" %  ( self.hostName), self)  
-        self.editPoolLogLogAction.triggered.connect( self.cb_editPoolLogLog)
-        self.miscMenu.addAction( self.editPoolLogLogAction)
+        self.logFilesMenu = self.menuBar.addMenu('LogFiles')
+        self.fillLogFilesMenu()
 
         #
         # Misc
@@ -360,10 +335,20 @@ class mainMenu( QtGui.QMainWindow):
             self.mgTableAction.triggered.connect( self.cb_mgTable)
             self.tableMenu.addAction( self.mgTableAction)
 
-        if len( self.devices.allMacroServers) > 0:
-            self.msTableAction = QtGui.QAction('MSs', self)        
+        if len( self.devices.allDoors) > 0:
+            self.doorTableAction = QtGui.QAction('Doors', self)        
+            self.doorTableAction.triggered.connect( self.cb_doorTable)
+            self.tableMenu.addAction( self.doorTableAction)
+
+        if len( self.devices.allMSs) > 0:
+            self.msTableAction = QtGui.QAction('Mmacroserver', self)        
             self.msTableAction.triggered.connect( self.cb_msTable)
             self.tableMenu.addAction( self.msTableAction)
+
+        if len( self.devices.allPools) > 0:
+            self.poolTableAction = QtGui.QAction('Pools', self)        
+            self.poolTableAction.triggered.connect( self.cb_poolTable)
+            self.tableMenu.addAction( self.poolTableAction)
 
         #
         # the activity menubar: help and activity
@@ -383,6 +368,62 @@ class mainMenu( QtGui.QMainWindow):
         self.activityIndex = 0
         self.activity = self.menuBarActivity.addMenu( "_")
 
+    def fillLogFilesMenu( self): 
+        import glob
+        #
+        # "/tmp/tango-%s/MacroServer/%s/log.txt" %  (tangoUser, hostName)
+        #
+        self.editMacroServerLogTxtAction = QtGui.QAction( "/tmp/tango-%s/MacroServer/%s/log.txt" %  
+                                                          (self.tangoUser, self.hostName), self)  
+        self.editMacroServerLogTxtAction.triggered.connect( self.cb_editMacroServerLogTxt)
+        self.logFilesMenu.addAction( self.editMacroServerLogTxtAction)
+
+        #
+        # "/var/tmp/ds.log/MacroServer_%s.log" %  (hostName)
+        #
+        self.editMacroServerLogAction = QtGui.QAction( "/var/tmp/ds.log/MacroServer_%s.log" % (self.hostName), self)  
+        self.editMacroServerLogAction.triggered.connect( self.cb_editMacroServerLogLog)
+        self.logFilesMenu.addAction( self.editMacroServerLogAction)
+
+        #
+        # "/tmp/tango-%s/Pool/%s/log.txt" %  (tangoUser, hostName)
+        #
+        self.editPoolLogTxtAction = QtGui.QAction( "/tmp/tango-%s/Pool/%s/log.txt" %  ( self.tangoUser, self.hostName), self)  
+        self.editPoolLogTxtAction.triggered.connect( self.cb_editPoolLogTxt)
+        self.logFilesMenu.addAction( self.editPoolLogTxtAction)
+        #
+        # "/var/tmp/ds.log/Pool_%s.log" %  (hostName)
+        #
+        self.editPoolLogLogAction = QtGui.QAction( "/var/tmp/ds.log/Pool_%s.log" %  ( self.hostName), self)  
+        self.editPoolLogLogAction.triggered.connect( self.cb_editPoolLogLog)
+        self.logFilesMenu.addAction( self.editPoolLogLogAction)
+
+        self.logFilesMenu.addSeparator()
+
+        #
+        # all server logs
+        #
+        logFiles = glob.glob( "/var/tmp/ds.log/*.log")
+        for fl in logFiles:
+            if fl.find( '[') > 0 and fl.find( ']') > 0: 
+                continue
+            if fl.find( 'MacroServer') != -1: 
+                continue
+            if fl.find( 'Pool') != -1: 
+                continue
+            logFileAction = QtGui.QAction( fl, self)  
+            logFileAction.triggered.connect( self.make_logFileCb( fl))
+            self.logFilesMenu.addAction( logFileAction)
+            
+    def make_logFileCb( self, fileName): 
+        def cb():
+            editor = os.getenv( "EDITOR")
+            if editor is None:
+                editor = "emacs"
+            os.system( "%s %s&" % (editor, fileName))
+            return 
+        return cb
+            
     def cb_launchTimer( self): 
         self.w_timer = tngAPI.timerWidget( self.logWidget, self.devices.allTimers, self)
         self.w_timer.show()
@@ -417,6 +458,15 @@ class mainMenu( QtGui.QMainWindow):
         
     def cb_mgTable( self):
         self.fillMGs()
+        
+    def cb_doorTable( self):
+        self.fillDoors()
+        
+    def cb_msTable( self):
+        self.fillMSs()
+        
+    def cb_poolTable( self):
+        self.fillPools()
     #
     # the closeEvent is called when the window is closed by 
     # clicking the X at the right-upper corner of the frame
@@ -1340,9 +1390,6 @@ class mainMenu( QtGui.QMainWindow):
         layout_grid = QtGui.QGridLayout()
 
         layout_grid.addWidget( QtGui.QLabel( "Alias"), 0, 0)
-        layout_grid.addWidget( QtGui.QLabel( "Value"), 0, 1)
-        layout_grid.addWidget( QtGui.QLabel( "Module"), 0, 2)
-        layout_grid.addWidget( QtGui.QLabel( "DeviceName"), 0, 3)
         count = 1
         for dev in self.devices.allMGs:
             aliasName = utils.QPushButtonTK( dev['name'])
@@ -1351,25 +1398,85 @@ class mainMenu( QtGui.QMainWindow):
             aliasName.mb2.connect( self.make_cb_commands( dev, self.logWidget))
             aliasName.mb3.connect( self.make_cb_properties( dev, self.logWidget)) 
             layout_grid.addWidget( aliasName, count, 0)
-
-            moduleName = QtGui.QLabel()
-            moduleName.setText( "%s" % (dev['module']))
-            moduleName.setAlignment( QtCore.Qt.AlignLeft)
-            moduleName.setFixedWidth( definitions.POSITION_WIDTH)
-            layout_grid.addWidget( moduleName, count, 1 )
-            #
-            # device name
-            #
-            devName = QtGui.QLabel()
-            devName.setText( "%s/%s" % (dev['hostname'], dev['device']))
-            devName.setAlignment( QtCore.Qt.AlignLeft)
-            layout_grid.addWidget( devName, count, 2 )
             
             count += 1
 
         self.base.setLayout( layout_grid)
         self.scrollArea.setWidget( self.base)
         self.refreshFunc = self.refreshMGs
+        
+
+    def fillDoors( self):
+
+        if self.base is not None:
+            self.base.destroy( True, True)
+
+        self.base = QtGui.QWidget()
+        layout_grid = QtGui.QGridLayout()
+
+        layout_grid.addWidget( QtGui.QLabel( "Name"), 0, 0)
+        count = 1
+        for dev in self.devices.allDoors:
+            aliasName = utils.QPushButtonTK( dev['name'])
+            aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
+            aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
+            aliasName.mb2.connect( self.make_cb_commands( dev, self.logWidget))
+            aliasName.mb3.connect( self.make_cb_properties( dev, self.logWidget)) 
+            layout_grid.addWidget( aliasName, count, 0)
+            
+            count += 1
+
+        self.base.setLayout( layout_grid)
+        self.scrollArea.setWidget( self.base)
+        self.refreshFunc = self.refreshDoors
+
+    def fillMSs( self):
+
+        if self.base is not None:
+            self.base.destroy( True, True)
+
+        self.base = QtGui.QWidget()
+        layout_grid = QtGui.QGridLayout()
+
+        layout_grid.addWidget( QtGui.QLabel( "Name"), 0, 0)
+        count = 1
+        for dev in self.devices.allMSs:
+            aliasName = utils.QPushButtonTK( dev['name'])
+            aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
+            aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
+            aliasName.mb2.connect( self.make_cb_commands( dev, self.logWidget))
+            aliasName.mb3.connect( self.make_cb_properties( dev, self.logWidget)) 
+            layout_grid.addWidget( aliasName, count, 0)
+            
+            count += 1
+
+        self.base.setLayout( layout_grid)
+        self.scrollArea.setWidget( self.base)
+        self.refreshFunc = self.refreshMSs
+
+    def fillPools( self):
+
+        if self.base is not None:
+            self.base.destroy( True, True)
+
+        self.base = QtGui.QWidget()
+        layout_grid = QtGui.QGridLayout()
+
+        layout_grid.addWidget( QtGui.QLabel( "Name"), 0, 0)
+        count = 1
+        for dev in self.devices.allPools:
+            aliasName = utils.QPushButtonTK( dev['name'])
+            aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
+            aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
+            aliasName.mb2.connect( self.make_cb_commands( dev, self.logWidget))
+            aliasName.mb3.connect( self.make_cb_properties( dev, self.logWidget)) 
+            layout_grid.addWidget( aliasName, count, 0)
+            
+            count += 1
+
+        self.base.setLayout( layout_grid)
+        self.scrollArea.setWidget( self.base)
+        self.refreshFunc = self.refreshPools
         
 
     def cb_refreshMain( self):
@@ -1608,6 +1715,15 @@ class mainMenu( QtGui.QMainWindow):
     def refreshMGs( self):
         pass
 
+    def refreshDoors( self):
+        pass
+
+    def refreshMSs( self):
+        pass
+
+    def refreshPools( self):
+        pass
+
     def handlerALRM( signum, frame, arg3):
         #print( "handlerALRM: called with signal %d" % signum)
         raise utils.TMO( "tmo-excepttion")
@@ -1734,6 +1850,7 @@ class mainMenu( QtGui.QMainWindow):
 
     def make_cb_attributes( self, dev, logWidget):
         def cb():
+            import tngGui.lib.deviceAttributes as deviceAttributes
             try:
                 sts = dev[ 'proxy'].state()
             except Exception as e:
@@ -1753,6 +1870,7 @@ class mainMenu( QtGui.QMainWindow):
 
     def make_cb_commands( self, dev, logWidget):
         def cb():
+            import tngGui.lib.deviceCommands as deviceCommands
             try:
                 sts = dev[ 'proxy'].state()
             except Exception as e:
@@ -1772,6 +1890,7 @@ class mainMenu( QtGui.QMainWindow):
 
     def make_cb_properties( self, dev, logWidget):
         def cb():
+            import tngGui.lib.deviceProperties as deviceProperties
             #
             # replace self.w_prop with w_prop to allow for one 
             # properties widget only
@@ -1784,6 +1903,7 @@ class mainMenu( QtGui.QMainWindow):
 
     def make_cb_mb3( self, dev, logWidget):
         def cb():
+            import tngGui.lib.deviceAttributes as deviceAttributes
             lst = HasyUtils.getDeviceProperty( dev['device'], "FlagEncoder", dev[ 'hostname'])
             if len(lst) == 0 or lst[0] != "1":
                 QtGui.QMessageBox.critical(self, 'Error', 

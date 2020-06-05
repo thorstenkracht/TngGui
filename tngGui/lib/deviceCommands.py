@@ -101,12 +101,14 @@ class deviceCommands( QtGui.QMainWindow):
 
     def cb_launchAttributes( self): 
 
-        self.w_attributes = deviceAttributes( self.dev, self.logWidget, self)
+        import tngGui.lib.deviceAttributes as deviceAttributes
+        self.w_attributes = deviceAttributes.deviceAttributes( self.dev, self.logWidget, self)
         self.w_attributes.show()
         return 
 
     def cb_launchProperties( self): 
-        self.w_prop = deviceProperties( self.dev, self.logWidget, self)
+        import tngGui.lib.deviceProperties as deviceProperties
+        self.w_prop = deviceProperties.deviceProperties( self.dev, self.logWidget, self)
         self.w_prop.show()
         return 
 
@@ -130,6 +132,13 @@ class deviceCommands( QtGui.QMainWindow):
         if len( self.commandInfoList) > 10:
             splitNo = math.ceil( len( self.commandInfoList)/2.)
 
+        #
+        # countMax keeps track of the line numbers, even if we have
+        # several columns. Solves this problem: if the right column
+        # ends earlier than the first column, the reply label still
+        # has to be in the right line
+        #
+        countMax = 0
         for commandInfo in self.commandInfoList:
             nameBtn = utils.QPushButtonTK( commandInfo.cmd_name)
             nameBtn.setToolTip( "In: %s\nOut:%s" % (commandInfo.in_type_desc, commandInfo.out_type_desc))
@@ -144,6 +153,8 @@ class deviceCommands( QtGui.QMainWindow):
             nameBtn.mb1.connect( self.make_cb_command( commandInfo, line))
 
             count += 1
+            if count > countMax:
+                countMax = count
             #
             # we don't want to reset the count, if there is only one 
             # command column. Otherwise the 'Reply' will be
@@ -155,7 +166,7 @@ class deviceCommands( QtGui.QMainWindow):
                 count = 0
 
         self.replyLabel = QtGui.QLabel( "Reply:")
-        self.layout_grid.addWidget( self.replyLabel, count, 0, 1, 2)
+        self.layout_grid.addWidget( self.replyLabel, countMax, 0, 1, 2)
 
 
         return 
@@ -188,7 +199,7 @@ class deviceCommands( QtGui.QMainWindow):
                 elif commandInfo.in_type == PyTango.CmdArgType.DevString:
                     reply = self.dev[ 'proxy'].command_inout( commandInfo.cmd_name, str( line.text()))
                 elif commandInfo.in_type == PyTango.CmdArgType.DevVarStringArray:
-                    lst = line.text().split( ',')
+                    lst = [ str(elm) for elm in line.text().split( ',')]                    
                     reply = self.dev[ 'proxy'].command_inout( commandInfo.cmd_name, lst)
                 elif commandInfo.in_type == PyTango.CmdArgType.DevVarLongArray or \
                      commandInfo.in_type == PyTango.CmdArgType.DevVarLong64Array or \
@@ -214,7 +225,10 @@ class deviceCommands( QtGui.QMainWindow):
                 line.clear()
 
             self.logWidget.append( "%s: %s(), reply %s" % (self.dev[ 'name'], commandInfo.cmd_name, repr( reply)))
-            self.replyLabel.setText( "Reply: %s" % repr( reply))
+            if len(repr( reply)) > 20:
+                self.replyLabel.setText( "Reply: see logWidget")
+            else: 
+                self.replyLabel.setText( "Reply: %s" % repr( reply))
             return 
 
         return cb

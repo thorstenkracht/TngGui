@@ -7,8 +7,6 @@ import math, os
 import definitions, utils, HasyUtils
 import json
 import tngGui.lib.helpBox as helpBox
-import tngGui.lib.deviceProperties as deviceProperties
-import tngGui.lib.deviceCommands as deviceCommands
 
 class deviceAttributes( QtGui.QMainWindow):
     def __init__( self, dev, logWidget, parent = None):
@@ -31,7 +29,7 @@ class deviceAttributes( QtGui.QMainWindow):
         self.layout_v.addLayout( self.layout_grid)
 
         self.fillAttributes()
-            
+        
         #
         # Menu Bar
         #
@@ -52,7 +50,7 @@ class deviceAttributes( QtGui.QMainWindow):
         self.blackBoxAction = QtGui.QAction( 'BlackBox', self)        
         self.blackBoxAction.triggered.connect( self.cb_blackBox)
         self.miscMenu.addAction( self.blackBoxAction)
-
+        
         if self.dev[ 'module'].lower() == "oms58":
             self.saveAttrAction = QtGui.QAction( 'Save Attrs', self)        
             self.saveAttrAction.triggered.connect( self.cb_saveAttr)
@@ -126,6 +124,11 @@ class deviceAttributes( QtGui.QMainWindow):
             self.statusBar.addPermanentWidget( self.listMgConf) # 'permanent' to shift it right
             self.listMgConf.clicked.connect( self.cb_listMgConf)
             
+            self.checkMg = QtGui.QPushButton(self.tr("Check MG")) 
+            self.checkMg.setToolTip("Check the elements of a measurment group")
+            self.statusBar.addPermanentWidget( self.checkMg) # 'permanent' to shift it right
+            self.checkMg.clicked.connect( self.cb_checkMg)
+            
             self.deleteMg = QtGui.QPushButton(self.tr("Delete MG")) 
             self.deleteMg.setToolTip("Delete the measurment group")
             self.statusBar.addPermanentWidget( self.deleteMg) # 'permanent' to shift it right
@@ -193,8 +196,13 @@ class deviceAttributes( QtGui.QMainWindow):
             if attrInfo.name.lower() == 'position':
                 name = QtGui.QLabel( "Position (cal.)")
             else:
-                name = QtGui.QLabel( attrInfo.name)
-            name.setToolTip( "%s, %s" % (attrInfo.description, attrInfo.unit))
+                if attrInfo.data_format == PyTango.AttrDataFormat.SPECTRUM: 
+                    name = QtGui.QPushButton( attrInfo.name)
+                    QtCore.QObject.connect( name, QtCore.SIGNAL(utils.fromUtf8("clicked()")), self.make_cb_attr( attrInfo.name))
+                    name.setToolTip( "Write to log widget")
+                else: 
+                    name = QtGui.QLabel( attrInfo.name)
+                    name.setToolTip( "%s, %s" % (attrInfo.description, attrInfo.unit))
             self.layout_grid.addWidget( name, count, 0 + columnOffset)
             
             value = None
@@ -326,7 +334,23 @@ class deviceAttributes( QtGui.QMainWindow):
         attrInfoList.append( ste)
         attrInfoList.append( sts)
         return attrInfoList
-        
+
+    def make_cb_attr( self, name):
+        """
+        if an attribute is a spectrum we have to make a special output
+        """
+        def cb():
+            val = self.dev[ 'proxy'].read_attribute( name).value
+            self.logWidget.append( "--- attribute %s (%s) " % (name, type( val)))
+            if type( val) is list or \
+               type( val) is tuple:
+                for elm in val: 
+                    self.logWidget.append( elm)
+            else: 
+                self.logWidget.append( repr( self.dev[ 'proxy'].read_attribute( name).value))
+            return 
+        return cb
+    
     def cb_clearError( self):
         '''
         Spk
@@ -433,14 +457,40 @@ class deviceAttributes( QtGui.QMainWindow):
             tmp += elm + ", "
         self.logWidget.append( tmp)
         return 
+
+    def cb_checkMg( self):
+        '''
+        checks the status of the elements of an MG
+        '''
+
+        self.logWidget.append( "--- checkMg")
+
+        for dev in self.parent.devices.allDoors:
+            self.logWidget.append( "%s state %s" % ( dev[ 'name'], repr( dev[ 'proxy'].state())))
+
+        for dev in self.parent.devices.allMSs:
+            self.logWidget.append( "%s state %s" % ( dev[ 'name'], repr( dev[ 'proxy'].state())))
+
+        for dev in self.parent.devices.allPools:
+            self.logWidget.append( "%s state %s" % ( dev[ 'name'], repr( dev[ 'proxy'].state())))
+
+        self.logWidget.append( "---")
+            
+        lst = self.dev[ 'proxy'].ElementList
+        for elm in lst:
+            p = PyTango.DeviceProxy( elm)
+            self.logWidget.append( "%s state %s" % (elm, repr( p.state())))
+        return 
         
     def cb_launchCommands( self): 
 
+        import tngGui.lib.deviceCommands as deviceCommands
         self.w_commands = deviceCommands.deviceCommands( self.dev, self.logWidget, self)
         self.w_commands.show()
         return 
 
     def cb_launchProperties( self): 
+        import tngGui.lib.deviceProperties as deviceProperties
         self.w_prop = deviceProperties.deviceProperties( self.dev, self.logWidget, self)
         self.w_prop.show()
         return 
@@ -692,7 +742,6 @@ class deviceAttributes( QtGui.QMainWindow):
             if line.find('Empty') == -1:
                 self.logWidget.append( line)
 
-        
     def cb_saveAttr( self):
         res = HasyUtils.saveAttrsAsPython( alias = self.dev[ 'name'], module = self.dev[ 'module'])
         if res is None:

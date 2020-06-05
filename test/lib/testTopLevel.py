@@ -85,6 +85,12 @@ class testTopLevel( unittest.TestCase):
         self.waitSomeTime( 1.0)
         mainWidget.cb_mgTable()
         mainWidget.logWidget.append( "Table: MGs")
+        mainWidget.cb_doorTable()
+        mainWidget.logWidget.append( "Table: Doors")
+        mainWidget.cb_msTable()
+        mainWidget.logWidget.append( "Table: Macroserver")
+        mainWidget.cb_poolTable()
+        mainWidget.logWidget.append( "Table: Pools")
         self.waitSomeTime( 1.0)
         
         mainWidget.cb_clear()
@@ -200,7 +206,9 @@ class testTopLevel( unittest.TestCase):
         devs = devices.Devices( args = args, xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
         self.assertEqual( len( devs.allMotors), 19)
 
-        dct = { 'allIRegs': 16, 'allMCAs': 4, 'allMGs': 8, 'allModuleTangos': 1, 
+        dct = { 'allIRegs': 16, 'allMCAs': 4, 'allMGs': 10, 
+                'allMSs': 1, 'allDoors': 3, 'allPools': 1, 
+                'allModuleTangos': 1, 
                 'allMotors': 19, 'allORegs': 16, 'allPiLCModules': 0, 'allTangoAttrCtrls': 12, 
                 'allTangoCounters': 4, 'allTimers': 4, 'allVfcAdcs': 8}
 

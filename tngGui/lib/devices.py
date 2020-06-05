@@ -36,6 +36,9 @@ class Devices():
         self.allTangoAttrCtrls = []
         self.allTangoCounters = []   # VcExecutors
         self.allMGs = []
+        self.allDoors = []
+        self.allMSs = []
+        self.allPools = []
 
         self.args = args
         if xmlFile is None: 
@@ -62,6 +65,9 @@ class Devices():
         self.findAllTimers()
         self.findAllCounters()
         self.findAllMGs()
+        self.findAllDoors()
+        self.findAllMSs()
+        self.findAllPools()
 
 
         timerName = None
@@ -488,7 +494,7 @@ class Devices():
             dev[ 'device'] = 'None'
             dev[ 'module'] = 'None'
             dev[ 'type'] = 'measurement_group'
-            dev[ 'hostname'] = "%s:10000" % os.getenv( "TANGO_HOST")
+            dev[ 'hostname'] = "%s" % os.getenv( "TANGO_HOST")
             dev[ 'proxy'] = createProxy( dev)
             if dev[ 'proxy'] is None:
                 print( "findAllMGs: No proxy to %s, ignoring this device" % dev[ 'name'])
@@ -497,6 +503,55 @@ class Devices():
             self.allMGs.append( dev)
 
         self.allMGs = sorted( self.allMGs, key=lambda k: k['name'])
+        return 
+
+
+    def findAllDoors( self):
+        self.allDoors = []
+        for door in HasyUtils.getDoorNames():
+            dev = {}
+            dev[ 'name'] = door
+            dev[ 'device'] = door
+            dev[ 'type'] = "door"
+            dev[ 'module'] = "door"
+            dev[ 'hostname'] = "%s" % os.getenv( "TANGO_HOST")
+            dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
+            dev[ 'proxy'] = createProxy( dev)
+            self.allDoors.append( dev)
+
+        self.allDoors = sorted( self.allDoors, key=lambda k: k['name'])
+        return 
+
+    def findAllMSs( self):
+        self.allMSs = []
+        for elm in HasyUtils.getMacroServerNames():
+            dev = {}
+            dev[ 'name'] = elm
+            dev[ 'device'] = elm
+            dev[ 'type'] = "macroserver"
+            dev[ 'module'] = "macroserver"
+            dev[ 'hostname'] = "%s" % os.getenv( "TANGO_HOST")
+            dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
+            dev[ 'proxy'] = createProxy( dev)
+            self.allMSs.append( dev)
+
+        self.allMSs = sorted( self.allMSs, key=lambda k: k['name'])
+        return 
+
+    def findAllPools( self):
+        self.allPools = []
+        for elm in HasyUtils.getPoolNames():
+            dev = {}
+            dev[ 'name'] = elm
+            dev[ 'device'] = elm
+            dev[ 'type'] = "pool"
+            dev[ 'module'] = "pool"
+            dev[ 'hostname'] = "%s" % os.getenv( "TANGO_HOST")
+            dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
+            dev[ 'proxy'] = createProxy( dev)
+            self.allPools.append( dev)
+
+        self.allPools = sorted( self.allPools, key=lambda k: k['name'])
         return 
 
     def findAllCounters( self):
@@ -590,7 +645,7 @@ class Devices():
 def createProxy( dev):
 
     try:
-        #print( "createProxy %s/%s, %s" % (dev[ 'hostname'], dev[ 'device'], dev[ 'name']))
+        #print( "devices.createProxy %s/%s, %s" % (dev[ 'hostname'], dev[ 'device'], dev[ 'name']))
         #
         #  <device>p08/sis3302/exp.01/1</device>
         #
@@ -608,14 +663,14 @@ def createProxy( dev):
     except Exception as e:
         print( "tngGui.lib.devices.createProxy: no proxy to %s, flagging 'offline' " % dev[ 'name']   )
         dev[ 'flagOffline'] = True
-        #for arg in e.args:
-        #    if hasattr( arg, 'desc'):
-        #        print( " desc:   %s" % arg.desc )
-        #        print( " origin: %s" % arg.origin)
-        #        print( " reason: %s" % arg.reason)
-        #        print( "")
-        #    else:
-        #        print( repr( e))
+        for arg in e.args:
+            if hasattr( arg, 'desc'):
+                print( " desc:   %s" % arg.desc )
+                print( " origin: %s" % arg.origin)
+                print( " reason: %s" % arg.reason)
+                print( "")
+            else:
+                print( repr( e))
         proxy = None
 
     return proxy
