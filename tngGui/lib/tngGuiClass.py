@@ -341,7 +341,7 @@ class mainMenu( QtGui.QMainWindow):
             self.tableMenu.addAction( self.doorTableAction)
 
         if len( self.devices.allMSs) > 0:
-            self.msTableAction = QtGui.QAction('Mmacroserver', self)        
+            self.msTableAction = QtGui.QAction('Macroserver', self)        
             self.msTableAction.triggered.connect( self.cb_msTable)
             self.tableMenu.addAction( self.msTableAction)
 
@@ -914,7 +914,7 @@ class mainMenu( QtGui.QMainWindow):
         layout_grid = QtGui.QGridLayout()
 
         layout_grid.addWidget( QtGui.QLabel( "Alias"), 0, 0)
-        layout_grid.addWidget( QtGui.QLabel( "State"), 0, 1)
+        layout_grid.addWidget( QtGui.QLabel( "Value"), 0, 1)
         layout_grid.addWidget( QtGui.QLabel( "Module"), 0, 2)
         layout_grid.addWidget( QtGui.QLabel( "DeviceName"), 0, 3)
 
