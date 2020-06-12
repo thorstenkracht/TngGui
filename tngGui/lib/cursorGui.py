@@ -5,7 +5,8 @@ from PyQt4 import QtCore, QtGui
 import PyTango
 import math, sys, os
 import HasyUtils
-import utils, definitions
+import tngGui.lib.utils as utils
+import tngGui.lib.definitions as definitions
 
 class CursorGUI( QtGui.QMainWindow):
     def __init__( self, nameGQE, dev, logWidget = None, parent = None):

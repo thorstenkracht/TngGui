@@ -642,11 +642,18 @@ class mainMenu( QtGui.QMainWindow):
         '''
         import tempfile
         import shelve
-        hsh = shelve.open('/online_dir/MacroServer/macroserver.properties')
-        ret = HasyUtils.dct_print2str( hsh)
+        if sys.version.split( '.')[0] == '2': 
+            hsh = shelve.open('/online_dir/MacroServer/macroserver.properties')
+            ret = HasyUtils.dct_print2str( hsh)
+        else: 
+            self.logWidget.append( "editMacroServerProperties: not possible in Python3")
+            return 
 
         new_file, filename = tempfile.mkstemp()
-        os.write(new_file, "#\n%s" % ret)
+        if sys.version.split( '.')[0] == '2': 
+            os.write(new_file, "#\n%s" % ret)
+        else: 
+            os.write(new_file, bytes( "#\n%s" % ret, 'utf-8'))
         os.close(new_file)
 
         editor = os.getenv( "EDITOR")
@@ -657,7 +664,7 @@ class mainMenu( QtGui.QMainWindow):
 
     def cb_editMacroServerEnvironment( self):
         '''
-        creates a temporary file containing the active MacroServer environment
+        creates a temporary file containing the active MacroSerqver environment
         calls an EDITOR to open it
         
         '''
@@ -666,8 +673,10 @@ class mainMenu( QtGui.QMainWindow):
         d = HasyUtils.getEnvDct()
         ret = HasyUtils.dct_print2str( d)
 
-        new_file, filename = tempfile.mkstemp()
-        os.write(new_file, "#\n%s" % ret)
+        if sys.version.split( '.')[0] == '2': 
+            os.write(new_file, "#\n%s" % ret)
+        else: 
+            os.write(new_file, bytes( "#\n%s" % ret, 'utf-8'))
         os.close(new_file)
 
         editor = os.getenv( "EDITOR")

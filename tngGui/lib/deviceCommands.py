@@ -4,7 +4,9 @@
 from PyQt4 import QtCore, QtGui
 import PyTango
 import math, os
-import definitions, utils, HasyUtils
+import HasyUtils
+import tngGui.lib.utils as utils
+import tngGui.lib.definitions as definitions
 import json
 import tngGui.lib.helpBox as helpBox
 

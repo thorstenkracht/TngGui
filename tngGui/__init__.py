@@ -1,4 +1,4 @@
 #!/usr/bin/env python
 
-import lib.helpBox 
+import tngGui.lib.helpBox 
 

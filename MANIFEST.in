@@ -1,0 +1,5 @@
+include AUTHORS CHANGES LICENSE README.rst handleVersion.py
+recursive-include tngGui *.py
+# prune docs/_build
+# prune docs/_themes/.git
+global-exclude *.pyc *~ .DS_Store *__pycache__* *.pyo .travis-exclude.yml

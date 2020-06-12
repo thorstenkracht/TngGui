@@ -5,13 +5,16 @@ from PyQt4 import QtCore, QtGui
 
 import PyTango
 import math, time, sys, os
-import definitions, utils, HasyUtils
-import tngAPI, cursorGui
+import HasyUtils
+import tngGui.lib.utils as utils
+import tngGui.lib.definitions as definitions
+import tngGui.lib.tngAPI as tngAPI
+import tngGui.lib.cursorGui as cursorGui
 import PySpectra.graPyspIfc as graPyspIfc
 import tngGui.lib.deviceAttributes as deviceAttributes
 import tngGui.lib.deviceProperties as deviceProperties
 import tngGui.lib.deviceCommands as deviceCommands
-import defineSignal
+import tngGui.lib.defineSignal as defineSignal
 import PySpectra.pySpectraGuiClass
 import PySpectra.pyspMonitorClass
 

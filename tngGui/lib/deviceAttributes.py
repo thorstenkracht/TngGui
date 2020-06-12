@@ -3,8 +3,10 @@
 #from taurus.external.qt import QtGui, QtCore 
 from PyQt4 import QtCore, QtGui
 import PyTango
-import math, os
-import definitions, utils, HasyUtils
+import math, os, sys
+import HasyUtils
+import tngGui.lib.utils as utils
+import tngGui.lib.definitions as definitions
 import json
 import tngGui.lib.helpBox as helpBox
 
@@ -327,10 +329,10 @@ class deviceAttributes( QtGui.QMainWindow):
                     continue
             attrInfoList.append( attrInfo)
 
-        def cmpr( x, y): 
-            return cmp( x.name, y.name)
+        def cmpr( x): 
+            return x.name
 
-        attrInfoList.sort( cmpr) 
+        attrInfoList.sort( key = cmpr) 
         attrInfoList.append( ste)
         attrInfoList.append( sts)
         return attrInfoList
@@ -383,7 +385,10 @@ class deviceAttributes( QtGui.QMainWindow):
         ret = HasyUtils.dct_print2str( hsh)
         new_file, filename = tempfile.mkstemp()
         lst = self.dev[ 'proxy'].ElementList
-        os.write(new_file, "#\n# %s: %s \n#\n%s" % ( self.dev[ 'name'], str(lst), ret))
+        if sys.version.split( '.')[0] == '2': 
+            os.write(new_file, "#\n# %s: %s \n#\n%s" % ( self.dev[ 'name'], str(lst), ret))
+        else: 
+            os.write(new_file, bytes( "#\n# %s: %s \n#\n%s" % ( self.dev[ 'name'], str(lst), ret), 'utf-8'))
         os.close(new_file)
 
         editor = os.getenv( "EDITOR")

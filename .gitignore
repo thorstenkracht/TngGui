@@ -17,7 +17,7 @@ versionTarBall*
 # Distribution / packaging
 .Python
 build/
-DebianPackage/
+DebianPackages/
 develop-eggs/
 dist/
 downloads/

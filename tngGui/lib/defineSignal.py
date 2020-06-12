@@ -3,7 +3,7 @@
 #from taurus.external.qt import QtGui, QtCore 
 from PyQt4 import QtCore, QtGui
 
-import utils
+import tngGui.lib.utils as utils
 
 class DefineSignal( QtGui.QMainWindow):
     def __init__( self, parent = None, allDevices = None):

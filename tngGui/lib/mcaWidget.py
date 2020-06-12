@@ -6,7 +6,9 @@ from PyQt4 import QtCore, QtGui
 import PyTango
 import numpy
 import math, time, sys, os
-import definitions, utils, HasyUtils
+import HasyUtils
+import tngGui.lib.utils as utils
+import tngGui.lib.definitions as definitions
 import PySpectra.graPyspIfc as graPyspIfc
 import PySpectra.pySpectraGuiClass
 import PySpectra.pyspMonitorClass

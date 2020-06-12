@@ -4,7 +4,8 @@
 from PyQt4 import QtCore, QtGui
 
 import HasyUtils.MgUtils
-import definitions, utils
+import tngGui.lib.utils as utils
+import tngGui.lib.definitions as definitions
 
 class SelectMcaAndTimer( QtGui.QMainWindow):
     """
