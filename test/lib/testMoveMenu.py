@@ -66,7 +66,7 @@ class testMoveMenu( unittest.TestCase):
 
     def testMoveMenu( self):
 
-        print( "testMoveMenu.testeMoveMenu, start")
+        print( "testMoveMenu.testMoveMenu, start")
         w_defSig = moveWidget.cb_defineSignal()
         self.waitSomeTime( 1.0)
         w_defSig.close()

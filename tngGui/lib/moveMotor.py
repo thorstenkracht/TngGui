@@ -1053,7 +1053,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
             except Exception as e:
                 self.logWidget.append( "cb_refresh, exception from createScan")
                 self.logWidget.append( repr( e))
-                print( "moveMotor.refreshMoveMotor: caught exception %s\n" % repr( e))
+                print( "moveMotor.refreshMoveMotor: caught exception from createScan() %s\n" % repr( e))
                 sys.exit(255)
             #print( "cb_refresh: created %s" % self.scan.name)
             self.curr_index = 0
@@ -1095,6 +1095,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         self.updateTimer.start( definitions.TIMEOUT_REFRESH_MOTOR)
 
         return 
+
     def deleteScan( self): 
         '''
         use the graPyspIfc module to abstract Spectra/PySpectra
