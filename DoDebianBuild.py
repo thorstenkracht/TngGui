@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 """
-this scripts creates the tnggui debian package for Python2 and Python3
-  DoDebianBuild.py 
-
+this scripts creates the debian package for Python2 and Python3
 """
 import os, sys
 import handleVersion
 import argparse
 
-ROOT_DIR = "/home/kracht/Misc"
+ROOT_DIR = "/home/kracht/Misc/tngGui"
+PACKET_NAME = "tnggui"
+files2Check = [ 'bin/TngGui.py', 
+                'lib/tngGuiClass.py']
 
 def checkDebContents( packageName): 
     """
     check whether the deb package contains some important files
     """
-    files2Check = [ 'bin/TngGui.py', 
-                    'tngGuiClass.py']
     ret = os.popen( "dpkg-deb -c %s" % (packageName)).read()
 
     for line in ret.split( '\n'): 
@@ -37,6 +36,8 @@ def checkDebContents( packageName):
 
 def main(): 
 
+    os.chdir( "%s" % (ROOT_DIR))
+    
     print( ">>> DoDebianBuild.py \n")
 
     if not os.path.exists( "/tmp/DebianPackages"): 
@@ -44,8 +45,8 @@ def main():
             printf( "Failed  to create /tmp/DebianPackages")
             sys.exit( 255)
 
-    if not os.path.exists( "%s/tngGui/DebianPackages" % ROOT_DIR): 
-        if os.mkdir( "%s/tngGui/DebianPackages" % ROOT_DIR):
+    if not os.path.exists( "%s/DebianPackages" % (ROOT_DIR)): 
+        if os.mkdir( "%s/DebianPackages" % (ROOT_DIR)):
             printf( "Failed  to create %s/DebianPackages" % ROOT_DIR)
             sys.exit( 255)
 
@@ -53,7 +54,7 @@ def main():
     # cleanup
     #
     print( ">>> cleanup")
-    if os.system( "/bin/rm -rf /tmp/DebianPackages/python*-tnggui*"):
+    if os.system( "/bin/rm -rf /tmp/DebianPackages/python*-%s*" % PACKET_NAME):
         print( "trouble cleaning up")
         sys.exit( 255)
     #
@@ -61,34 +62,35 @@ def main():
     #
     handleVersion.incrementVersion()
     version = handleVersion.findVersion()
+
     #
     # create the source distribution
     #
     print( ">>> Create the source distribution")
-    if os.system( "cd %s/tngGui && python setup.py sdist" % (ROOT_DIR)):
+    if os.system( "cd %s && python setup.py sdist" % (ROOT_DIR)):
         print( "trouble running setup sdist")
         sys.exit( 255)
     #
     # cp the tarball
     #
     print( ">>> copy the tarBall to ../DebianPackages") 
-    if os.system( "cp %s/tngGui/dist/python-tnggui-%s.tar.gz /tmp/DebianPackages" % 
-                  (ROOT_DIR, version)):
+    if os.system( "cp %s/dist/python-%s-%s.tar.gz /tmp/DebianPackages" % 
+                  (ROOT_DIR, PACKET_NAME, version)):
         print( "failed to copy tar file")
         sys.exit( 255)
     #
     # unpack the tarball
     #
     print( ">>> unpack the tarBall") 
-    if os.system( "cd /tmp/DebianPackages && tar xvzf python-tnggui-%s.tar.gz" % (version)):
+    if os.system( "cd /tmp/DebianPackages && tar xvzf python-%s-%s.tar.gz" % (PACKET_NAME, version)):
         print( "failed to unpack the tar file")
         sys.exit( 255)
     #
     # rename the tarball (is this necessary?)
     #
     print( ">>> rename the tarBall") 
-    if os.system( "cd /tmp/DebianPackages && mv python-tnggui-%s.tar.gz python-tnggui_%s.orig.tar.gz" % 
-                  (version, version)):
+    if os.system( "cd /tmp/DebianPackages && mv python-%s-%s.tar.gz python-%s_%s.orig.tar.gz" % 
+                  (PACKET_NAME, version, PACKET_NAME, version)):
         print( "failed to rename the tar file")
         sys.exit( 255)
     #
@@ -109,43 +111,43 @@ def main():
     # automatic confirmation to the question
     #
     print( ">>> dh_make") 
-    if os.system( "cd /tmp/DebianPackages/python-tnggui-%s && dh_make --native -s -y" % (version)):
+    if os.system( "cd /tmp/DebianPackages/python-%s-%s && dh_make --native -s -y" % (PACKET_NAME, version)):
         print( "failed to dh_make")
         sys.exit( 255)
     #
     # copy README.source, control, copyright, rules 
     #
     for name in [ 'control', 'copyright', 'rules', 'README.source']: 
-        if os.system( "cp -v %s/tngGui/debian/%s /tmp/DebianPackages/python-tnggui-%s/debian/%s" %
-                      (ROOT_DIR, name, version, name)):
+        if os.system( "cp -v %s/debian/%s /tmp/DebianPackages/python-%s-%s/debian/%s" %
+                      (ROOT_DIR, name, PACKET_NAME, version, name)):
             print( "failed to copy %s" % name)
             sys.exit( 255)
     #
     # build debian package
     #
     print( ">>> build package") 
-    if os.system( "cd /tmp/DebianPackages/python-tnggui-%s && debuild -us -uc" % (version)):
+    if os.system( "cd /tmp/DebianPackages/python-%s-%s && debuild -us -uc" % (PACKET_NAME, version)):
         print( "failed to debuild")
         sys.exit( 255)
     
     #
-    # check the deb packages and copy them to ./tngGui/DebianPackages
+    # check the deb packages and copy them to ./pyspectra/DebianPackages
     #
-    debNameP2 = "/tmp/DebianPackages/python-tnggui_%s_all.deb" % (version)
+    debNameP2 = "/tmp/DebianPackages/python-%s_%s_all.deb" % (PACKET_NAME, version)
     if os.path.exists( debNameP2):
         print( "%s has been created" % (debNameP2))
         ret = os.popen( "dpkg-deb -c %s" % (debNameP2)).read()
         if checkDebContents( debNameP2): 
-            if os.system( "cp -v %s %s/tngGui/DebianPackages" % 
+            if os.system( "cp -v %s %s/DebianPackages" % 
                           (debNameP2, ROOT_DIR)):
                 print( "failed to copy deb package to ./DebianPackages")
                 sys.exit( 255)
-    debNameP3 = "/tmp/DebianPackages/python3-tnggui_%s_all.deb" % (version)
+    debNameP3 = "/tmp/DebianPackages/python3-%s_%s_all.deb" % (PACKET_NAME, version)
     if os.path.exists( debNameP3):
         print( "%s has been created" % (debNameP3))
         ret = os.popen( "dpkg-deb -c %s" % (debNameP3)).read()
         if checkDebContents( debNameP3): 
-            if os.system( "cp -v %s %s/tngGui/DebianPackages" % 
+            if os.system( "cp -v %s %s/DebianPackages" % 
                           (debNameP3, ROOT_DIR)):
                 print( "failed to copy deb package to ./DebianPackages")
                 sys.exit( 255)

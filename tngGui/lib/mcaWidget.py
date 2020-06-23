@@ -44,8 +44,13 @@ class mcaWidget( QtGui.QMainWindow):
                     self.selectedTimers.append( self.getDev( elm))
             self.selectedMCAs = []
             for elm in lst: 
-                if elm.find( '_mca') != -1: 
-                    self.selectedMCAs.append( self.getDev( elm))
+                if elm.find( '_mca') != -1 and elm.find( "roi") == -1: 
+                    temp = self.getDev( elm)
+                    self.selectedMCAs.append( temp)
+
+        for dev in self.selectedMCAs: 
+            dev[ 'proxy'].stop()
+
         self.selectedTimers.sort()
         self.selectedMCAs.sort()
         self.mcaOntop = self.selectedMCAs[0]
@@ -72,6 +77,7 @@ class mcaWidget( QtGui.QMainWindow):
         #
         self.updateTimeMCA = 1.
         self.timeDead = 0.
+        self.timeTotal = 0
         # 
         #
         self.refreshTimer = QtCore.QTimer(self)
@@ -104,6 +110,9 @@ class mcaWidget( QtGui.QMainWindow):
             self.activityIndex = 0
         self.activity.setTitle( definitions.ACTIVITY_SYMBOLS[ self.activityIndex])
 
+        if 'scan' in self.mcaOntop: 
+            self.totalCountsLabel.setText( "%g" % self.mcaOntop[ 'scan'].getTotalCounts())
+
         #print( "refreshMCAWidget %s" % self.statusMCA)
         return 
 
@@ -120,7 +129,7 @@ class mcaWidget( QtGui.QMainWindow):
         self.sampleTimeLine = QtGui.QLineEdit()
         self.sampleTimeLine.setFixedWidth( 50)
         self.sampleTimeLine.setAlignment( QtCore.Qt.AlignRight)
-        self.sampleTimeLine.setText( "3")
+        self.sampleTimeLine.setText( "-1")
         hBox.addWidget( self.sampleTimeLine)
         #
         # total time
@@ -184,8 +193,9 @@ class mcaWidget( QtGui.QMainWindow):
         # total counts
         #
         hBox.addWidget( QtGui.QLabel( 'Total:'))
-        self.totalLabel = QtGui.QLabel( "")
-        hBox.addWidget( self.totalLabel)
+        self.totalCountsLabel = QtGui.QLabel( "")
+
+        hBox.addWidget( self.totalCountsLabel)
         self.layout_frame_v.addLayout( hBox)
 
         #
@@ -323,6 +333,12 @@ class mcaWidget( QtGui.QMainWindow):
         stop the timers
         stop the MCAs
         """
+        print( "+++")
+        print( "+++")
+        print( "+++ stopMeansuremtn")
+        print( "+++")
+        print( "+++")
+        print( "+++")
         self.stopTimers()
         self.stopMCAs()
         self.statusMCA = "Idle"
@@ -394,7 +410,7 @@ class mcaWidget( QtGui.QMainWindow):
             self.flagTimerWasBusy = True
             if self.timeRemaining != -1.:
                 self.timeRemaining -= timeGate
-                self.remainingTimeLabel.setText( "%g" % self.timeRemaining)
+            self.remainingTimeLabel.setText( "%g" % self.timeRemaining)
 
             self.timeTotal += timeGate
             self.totalTimeLabel.setText( "%g" % self.timeTotal)
@@ -423,9 +439,15 @@ class mcaWidget( QtGui.QMainWindow):
         """
         self.stopTimers()
         self.stopMCAs()
+        self.clearMCAs()
+
+        for mca in self.selectedMCAs:
+            if 'scan' in mca: 
+                graPyspIfc.deleteScan( mca[ 'scan'])
+                del mca[ 'scan']
 
         graPyspIfc.cls()
-        graPyspIfc.delete()
+        #graPyspIfc.delete()
 
         self.timeDead = 0
         self.deadTimeLabel.setText( "%g" % self.timeDead)
@@ -439,7 +461,7 @@ class mcaWidget( QtGui.QMainWindow):
         start MCAs and timers
         """
         if self.statusMCA.upper() == "BUSY":
-            print( "cb_startMeasurement: is busy, stopping")
+            self.logWidget.append( "cb_startMeasurement: is busy, stopping")
             self.stopTimers()
             self.stopMCAs()
             self.timeRemaining = 0
@@ -456,7 +478,6 @@ class mcaWidget( QtGui.QMainWindow):
         
         self.timeRemaining = self.sampleTime
         self.timeStartElapsed = time.time()
-        self.timeTotal = 0
 
         self.configureWidgetsBusy( True)
         self.statusMCA = "Busy"
@@ -494,8 +515,8 @@ class mcaWidget( QtGui.QMainWindow):
             mca[ 'proxy'].stop()
         
     def displayMCAs( self): 
-        graPyspIfc.cls()
-        graPyspIfc.display()
+        #graPyspIfc.cls()
+        #graPyspIfc.display()
         return 
 
     def readMCAs( self): 
@@ -503,14 +524,16 @@ class mcaWidget( QtGui.QMainWindow):
             mca[ 'proxy'].read()
             if 'scan' in mca: 
                 if len( mca[ 'scan'].x) != mca[ 'proxy'].DataLength:
-                    del mca[ 'scan']
+                    graPyspIfc.deleteScan( mca[ 'scan'])
                     mca[ 'scan'] = graPyspIfc.Scan( name = mca[ 'name'], 
                                                     y = mca[ 'proxy'].data)
-                else: 
-                    mca[ 'scan'].y = numpy.copy( mca[ 'proxy'].data)
+                    graPyspIfc.display()
+                else:  
+                    mca[ 'scan'].smartUpdateDataAndDisplay( y = numpy.copy( mca[ 'proxy'].data))
             else: 
                 mca[ 'scan'] = graPyspIfc.Scan( name = mca[ 'name'], 
                                                 y = mca[ 'proxy'].data)
+                graPyspIfc.display()
 
         return 
 
@@ -539,9 +562,11 @@ class mcaWidget( QtGui.QMainWindow):
 
     def cb_helpMCA(self):
         QtGui.QMessageBox.about(self, self.tr("Help MCA"), self.tr(
-                "<h3> Help MCA </h3>"
+                "<h3> Operation </h3>"
                 "<ul>"
-                "<li> n.n.</li>"
+                "<li> Options-SelectDevices to select the timer and the MCA</li>"
+                "<li> Set sample time, '-1' encoder eternity</li>"
+                "<li> Press 'Start'</li>"
                 "</ul>"
                 ))
 
@@ -611,6 +636,7 @@ class mcaWidget( QtGui.QMainWindow):
         # TngGui.main() -> TngGuiClass.launchMoveMotor() -> moveMotor()
         #
         if self.app is not None: 
+            print( "+++mcaWidget: killing the app")
             self.app.quit()
         return
 

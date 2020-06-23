@@ -89,7 +89,7 @@ def main():
             w = tngGui.lib.tngGuiClass.launchMoveMotor( devs.allMotors[0], devs, app)
             w.show()
         else: 
-            mainW = tngGui.lib.tngGuiClass.mainMenu(args, app)
+            mainW = tngGui.lib.tngGuiClass.mainMenu(args, app, devs)
             mainW.show()
 
     try:

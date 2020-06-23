@@ -51,7 +51,7 @@ class mainMenu( QtGui.QMainWindow):
     '''
     the main class of the TngTool application
     '''
-    def __init__( self, args = None, app = None, parent = None):
+    def __init__( self, args = None, app = None, devs = None, parent = None):
         super( mainMenu, self).__init__( parent)
         self.setWindowTitle( "TngGui")
 
@@ -59,7 +59,10 @@ class mainMenu( QtGui.QMainWindow):
             PySpectra.InfoBlock.setMonitorGui( self)
 
         self.args = args        
-        self.devices = devices.Devices( args = args, xmlFile = None, parent = self)
+        if devs is None: 
+            self.devices = devices.Devices( args = args, xmlFile = None, parent = self)
+        else: 
+            self.devices = devs
 
         if self.args.tags and len( self.args.namePattern) > 0:
             print( "TngGui: specify tags or names")
@@ -793,7 +796,7 @@ class mainMenu( QtGui.QMainWindow):
     def cb_launchMCA( self): 
         self.mcaWidget = mcaWidget.mcaWidget( devices = self.devices, 
                                               logWidget = self.logWidget, 
-                                              app = self.app, parent = self)
+                                              app = None, parent = self)
         self.mcaWidget.show()
         
     def cb_launchPyspMonitor( self):

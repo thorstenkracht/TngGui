@@ -409,7 +409,7 @@ class Devices():
             if dev['module'].lower() in cameraNames: 
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print( "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name'])
+                    print( "findCameras: No proxy to %s, ignoring this device" % dev[ 'name'])
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -427,7 +427,7 @@ class Devices():
             if dev['module'].lower() in PiLCModuleNames: 
                 dev[ 'proxy'] = createProxy( dev)
                 if dev[ 'proxy'] is None:
-                    print( "findMCAs: No proxy to %s, ignoring this device" % dev[ 'name'])
+                    print( "findPiLCModules: No proxy to %s, ignoring this device" % dev[ 'name'])
                     continue
                 dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
                 dev[ 'flagOffline'] = False # devices not responding are flagged offline
@@ -666,9 +666,9 @@ def createProxy( dev):
         for arg in e.args:
             if hasattr( arg, 'desc'):
                 print( " desc:   %s" % arg.desc )
-                print( " origin: %s" % arg.origin)
-                print( " reason: %s" % arg.reason)
-                print( "")
+        #        print( " origin: %s" % arg.origin)
+        #        print( " reason: %s" % arg.reason)
+        #        print( "")
             else:
                 print( repr( e))
         proxy = None

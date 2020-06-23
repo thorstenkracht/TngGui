@@ -9,6 +9,7 @@ import tngGui.lib.utils as utils
 import tngGui.lib.definitions as definitions
 import json
 import tngGui.lib.helpBox as helpBox
+import numpy
 
 class deviceAttributes( QtGui.QMainWindow):
     def __init__( self, dev, logWidget, parent = None):
@@ -202,6 +203,10 @@ class deviceAttributes( QtGui.QMainWindow):
                     name = QtGui.QPushButton( attrInfo.name)
                     QtCore.QObject.connect( name, QtCore.SIGNAL(utils.fromUtf8("clicked()")), self.make_cb_attr( attrInfo.name))
                     name.setToolTip( "Write to log widget")
+                elif attrInfo.data_format == PyTango.AttrDataFormat.IMAGE: 
+                    name = QtGui.QPushButton( attrInfo.name)
+                    QtCore.QObject.connect( name, QtCore.SIGNAL(utils.fromUtf8("clicked()")), self.make_cb_attr( attrInfo.name))
+                    name.setToolTip( "Write to log widget")
                 else: 
                     name = QtGui.QLabel( attrInfo.name)
                     name.setToolTip( "%s, %s" % (attrInfo.description, attrInfo.unit))
@@ -253,6 +258,7 @@ class deviceAttributes( QtGui.QMainWindow):
                     #
                     # strings can be quite long, so give read-only string 2 columns space
                     #
+                    value.setFixedWidth( definitions.POSITION_WIDTH)
                     if attrInfo.data_type == PyTango.CmdArgType.DevString:
                         self.layout_grid.addWidget( value, count, 1 + columnOffset, 1, 2)
                     else: 
@@ -279,7 +285,8 @@ class deviceAttributes( QtGui.QMainWindow):
         attrTip551 = [ 'State', 'Status', 'Voltage', 'VoltageMax', 'VoltageMin']
         attrVfcAdc = [ 'State', 'Status', 'Counts', 'Value', 'Gain', 'Offset', 'Polarity']
         attrPilcVfcAdc = [ 'State', 'Status', 'Counts', 'Value', 'Polarity']
-        attrMCA_8701 = [ 'State', 'Status', 'DataLength', 'NbRois', 
+        attrMCA_8701 = [ 'State', 'Status', 'DataLength', 'NbRoIs', 'RoIs',  
+                         'Data', 
                          'Counts1', 'Counts1Diff', 'ROI1',
                          'Counts2', 'Counts2Diff', 'ROI2',
                          'Counts3', 'Counts3Diff', 'ROI3',
@@ -348,6 +355,17 @@ class deviceAttributes( QtGui.QMainWindow):
                type( val) is tuple:
                 for elm in val: 
                     self.logWidget.append( elm)
+            #
+            # for MCA data fields
+            #
+            elif type( val) is numpy.ndarray and len( val.shape) == 1:
+                sum = 0.
+                for i in range( len( val)): 
+                    if val[i] != 0.: 
+                        self.logWidget.append( " i: %d, data %g" % ( i, float( val[i])))
+                        sum += float( val[i])
+                self.logWidget.append( " sum %g"  % ( sum))
+                
             else: 
                 self.logWidget.append( repr( self.dev[ 'proxy'].read_attribute( name).value))
             return 
