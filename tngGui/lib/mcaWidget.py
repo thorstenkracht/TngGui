@@ -290,13 +290,13 @@ class mcaWidget( QtGui.QMainWindow):
         self.w_startButton.setToolTip( "Start the MCAs")
         self.statusBar.addPermanentWidget( self.w_startButton) # 'permanent' to shift it right
         self.w_startButton.clicked.connect( self.cb_startMeasurement)
-        self.w_startButton.setShortcut( "Alt+a")
+        self.w_startButton.setShortcut( "Alt+s")
 
-        self.w_clearButton = QtGui.QPushButton(self.tr("Clear")) 
-        self.w_clearButton.setToolTip( "Start the MCAs")
+        self.w_clearButton = QtGui.QPushButton(self.tr("&Clear")) 
+        self.w_clearButton.setToolTip( "Stop timers, stop MCAs, clea MCAs, delete data, reset dead-time and total-time")
         self.statusBar.addPermanentWidget( self.w_clearButton) # 'permanent' to shift it right
         self.w_clearButton.clicked.connect( self.cb_clearMeasurement)
-        self.w_clearButton.setShortcut( "Alt+a")
+        self.w_clearButton.setShortcut( "Alt+c")
 
         return 
 
@@ -328,26 +328,6 @@ class mcaWidget( QtGui.QMainWindow):
         self.mcaOntop = self.selectedMCAs[0]
         return 
 
-    def stopMeasurement( self):
-        """
-        stop the timers
-        stop the MCAs
-        """
-        print( "+++")
-        print( "+++")
-        print( "+++ stopMeansuremtn")
-        print( "+++")
-        print( "+++")
-        print( "+++")
-        self.stopTimers()
-        self.stopMCAs()
-        self.statusMCA = "Idle"
-        self.statusLabel.setText( self.statusMCA)
-        self.statusLabel.setStyleSheet( "background-color:%s;" % definitions.GREEN_OK)
-        self.w_startButton.setText( self.tr("&Start")) 
-        self.timeRemaining = 0.
-        return 
-        
     def checkTimers( self): 
         """
         return True, if one of the selectedTimers is busy
@@ -437,6 +417,8 @@ class mcaWidget( QtGui.QMainWindow):
     def cb_clearMeasurement( self):
         """
         """
+        self.logWidget.append( "cb_clearMeasurement")
+
         self.stopTimers()
         self.stopMCAs()
         self.clearMCAs()
@@ -453,6 +435,7 @@ class mcaWidget( QtGui.QMainWindow):
         self.deadTimeLabel.setText( "%g" % self.timeDead)
         self.timeTotal = 0
         self.totalTimeLabel.setText( "%g" % self.timeTotal)
+        self.totalCountsLabel.setText( "0")
 
         return 
 
@@ -460,13 +443,17 @@ class mcaWidget( QtGui.QMainWindow):
         """
         start MCAs and timers
         """
+
         if self.statusMCA.upper() == "BUSY":
-            self.logWidget.append( "cb_startMeasurement: is busy, stopping")
+            self.logWidget.append( "cb_stopMeasurement")
             self.stopTimers()
             self.stopMCAs()
             self.timeRemaining = 0
             self.updateMeasurement()
-            return 
+            self.w_startButton.setText( self.tr("&Start")) 
+            return
+
+        self.logWidget.append( "cb_startMeasurement")
         #
         # get the sample time from the QlineEdit
         #
@@ -474,8 +461,13 @@ class mcaWidget( QtGui.QMainWindow):
         if len( temp) == 0:
             self.logWidget.append( "startMeasurement: specify sample time")
             return
-        self.sampleTime = float( temp)
-        
+        try: 
+            self.sampleTime = float( temp)
+        except Exception as e: 
+            self.logWidget.append( "cb_startMeasurement: error from float( sampleTIme)")
+            self.logWidget.append( repr( e))
+            return 
+
         self.timeRemaining = self.sampleTime
         self.timeStartElapsed = time.time()
 
@@ -565,7 +557,7 @@ class mcaWidget( QtGui.QMainWindow):
                 "<h3> Operation </h3>"
                 "<ul>"
                 "<li> Options-SelectDevices to select the timer and the MCA</li>"
-                "<li> Set sample time, '-1' encoder eternity</li>"
+                "<li> Set sample time, '-1' encodes eternity</li>"
                 "<li> Press 'Start'</li>"
                 "</ul>"
                 ))
@@ -636,7 +628,6 @@ class mcaWidget( QtGui.QMainWindow):
         # TngGui.main() -> TngGuiClass.launchMoveMotor() -> moveMotor()
         #
         if self.app is not None: 
-            print( "+++mcaWidget: killing the app")
             self.app.quit()
         return
 

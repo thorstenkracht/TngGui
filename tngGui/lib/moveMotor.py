@@ -1124,9 +1124,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
                                          ylabel = self.counterName,
                                          xlabel = "%s/%s" % (self.dev[ 'hostname'],self.dev[ 'device']), 
                                          comment = "Timer: %s, SampleTime: %g" % (self.timerName, self.sampleTime),
-                                         NoDelete = False, 
                                          colour = 'red',
-                                         #at = "(1,1,1)",
                                          motorNameList = [ self.dev[ 'name']],
                                          logWidget = self.logWidget)
         except Exception as e:

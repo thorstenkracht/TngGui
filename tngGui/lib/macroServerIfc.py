@@ -366,7 +366,6 @@ LogMacroDir: directory where the log will be stored<br>\
         w_line.setMinimumWidth( 250)
         hBox.addWidget( w_line)
         self.dct[ var] = { "w_value": w_value, "w_line": w_line}
-        self.layout_v.addLayout( hBox)
         
         #
         # LogMacroDir

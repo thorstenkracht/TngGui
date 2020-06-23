@@ -206,7 +206,7 @@ class testTopLevel( unittest.TestCase):
         devs = devices.Devices( args = args, xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
         self.assertEqual( len( devs.allMotors), 19)
 
-        dct = { 'allIRegs': 16, 'allMCAs': 4, 'allMGs': 10, 
+        dct = { 'allIRegs': 16, 'allMCAs': 4, 'allMGs': 9, 
                 'allMSs': 1, 'allDoors': 3, 'allPools': 1, 
                 'allModuleTangos': 1, 
                 'allMotors': 19, 'allORegs': 16, 'allPiLCModules': 0, 'allTangoAttrCtrls': 12, 
