@@ -31,7 +31,7 @@ class mcaWidget( QtGui.QMainWindow):
         self.app = app
         self.parent = parent
         lst = HasyUtils.getMgElements( "mg_tnggui")
-        if len( lst) == 0: 
+        if lst is None or len( lst) == 0: 
             self.selectedTimers = self.devices.allTimers[:]
             self.selectedMCAs = self.devices.allMCAs[:]
         else: 
@@ -47,6 +47,11 @@ class mcaWidget( QtGui.QMainWindow):
                 if elm.find( '_mca') != -1 and elm.find( "roi") == -1: 
                     temp = self.getDev( elm)
                     self.selectedMCAs.append( temp)
+
+        if len( self.selectedMCAs) == 0: 
+            if self.logWidget:
+                self.logWidget.append( "mcaWidget: there are no MCAs")
+            raise ValueError( "mcaWidget: there are no MCAs")
 
         for dev in self.selectedMCAs: 
             dev[ 'proxy'].stop()

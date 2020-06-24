@@ -20,13 +20,14 @@ def main():
         #
         # avoid the string 'failed' because it is printed in red
         #
-        if os.system( "./DoDebianInstall.pl %s" % host):
+        if os.system( "./DoDebianInstall.py %s" % host):
             print "Missed to update %s" % host
             countFailed += 1
             continue
         print "DoAll: %d/%d (missed %d) %s " % (count, sz, countFailed, host)
         count += 1
-    if os.system( "./Update_Debian_Repo.pl"):
+
+    if os.system( "./UpdateDebianRepo.py"):
         print "Failed to update the debian repo"
     return
 
