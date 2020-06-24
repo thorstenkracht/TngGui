@@ -676,6 +676,7 @@ class mainMenu( QtGui.QMainWindow):
         d = HasyUtils.getEnvDct()
         ret = HasyUtils.dct_print2str( d)
 
+        new_file, filename = tempfile.mkstemp()
         if sys.version.split( '.')[0] == '2': 
             os.write(new_file, "#\n%s" % ret)
         else: 

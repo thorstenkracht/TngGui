@@ -55,6 +55,9 @@ class Devices():
         else: 
             self.allDevices = HasyUtils.getOnlineXML( xmlFile = self.xmlFile)
 
+        if self.allDevices is None: 
+            raise ValueError( "Devices.__init__: no devices found")
+
         self.findAllMotors( )
         self.findAllIORegs()
         self.findAllAdcDacs()
