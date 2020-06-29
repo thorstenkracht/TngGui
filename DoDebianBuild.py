@@ -8,31 +8,6 @@ import argparse
 
 ROOT_DIR = "/home/kracht/Misc/tngGui"
 PACKET_NAME = "tnggui"
-files2Check = [ 'bin/TngGui.py', 
-                'lib/tngGuiClass.py']
-
-def checkDebContents( packageName): 
-    """
-    check whether the deb package contains some important files
-    """
-    ret = os.popen( "dpkg-deb -c %s" % (packageName)).read()
-
-    for line in ret.split( '\n'): 
-        print( line)
-
-    print( "checkDebContents: %s" % packageName)
-    isOk = True
-    for fl in files2Check: 
-        if ret.find( fl) == -1: 
-            print( "debian package does not contain %s " % fl)
-            isOk = False
-        else: 
-            print( "  contains %s " % fl)
-    if isOk: 
-        print( "%s contains the files-to-check" % packageName)
-    else: 
-        print( "%s does not contain all files-to-check" % packageName)
-    return isOk
 
 def main(): 
 
@@ -136,21 +111,17 @@ def main():
     debNameP2 = "/tmp/DebianPackages/python-%s_%s_all.deb" % (PACKET_NAME, version)
     if os.path.exists( debNameP2):
         print( "%s has been created" % (debNameP2))
-        ret = os.popen( "dpkg-deb -c %s" % (debNameP2)).read()
-        if checkDebContents( debNameP2): 
-            if os.system( "cp -v %s %s/DebianPackages" % 
-                          (debNameP2, ROOT_DIR)):
-                print( "failed to copy deb package to ./DebianPackages")
-                sys.exit( 255)
+        if os.system( "cp -v %s %s/DebianPackages" % 
+                      (debNameP2, ROOT_DIR)):
+            print( "failed to copy deb package to ./DebianPackages")
+            sys.exit( 255)
     debNameP3 = "/tmp/DebianPackages/python3-%s_%s_all.deb" % (PACKET_NAME, version)
     if os.path.exists( debNameP3):
         print( "%s has been created" % (debNameP3))
-        ret = os.popen( "dpkg-deb -c %s" % (debNameP3)).read()
-        if checkDebContents( debNameP3): 
-            if os.system( "cp -v %s %s/DebianPackages" % 
-                          (debNameP3, ROOT_DIR)):
-                print( "failed to copy deb package to ./DebianPackages")
-                sys.exit( 255)
+        if os.system( "cp -v %s %s/DebianPackages" % 
+                      (debNameP3, ROOT_DIR)):
+            print( "failed to copy deb package to ./DebianPackages")
+            sys.exit( 255)
 
     return 
 

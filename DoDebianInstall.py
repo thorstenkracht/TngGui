@@ -44,22 +44,6 @@ def main():
         print( "DoDebinaInstall.py: %s no root login " % host)
         sys.exit( 255)
 
-    isP2Host = False
-    isP3Host = False
-    argout = os.popen('ssh root@%s "dpkg --status python3-sardana 2>/dev/null || echo failed"' % host).read()
-    argout = argout.strip()
-    if argout.find( 'failed') == -1:
-        isP3Host = True
-
-    argout = os.popen('ssh root@%s "dpkg --status python-sardana 2>/dev/null || echo failed"' % host).read()
-    argout = argout.strip()
-    if argout.find( 'failed') == -1:
-        isP2Host = True
-
-    if (isP2Host and isP3Host) or (not isP2Host and not isP3Host): 
-        print( "DoDebianInstall.py: failed to identify the sardana version on %s" % host)
-        return 
-        
     version = handleVersion.findVersion()
 
     argout = os.popen('ssh root@%s "uname -v"' % host).read()
@@ -69,14 +53,15 @@ def main():
         print( "DoDebinaInstall.py: %s does not run Debian " % host)
         sys.exit( 255)
 
-    if isP3Host: 
-        debName = "python3-%s_%s_all.deb" % (PACKET_NAME, version)
-    else: 
-        debName = "python-%s_%s_all.deb" % (PACKET_NAME, version)
+    debName3 = "python3-%s_%s_all.deb" % (PACKET_NAME, version)
+    debName = "python-%s_%s_all.deb" % (PACKET_NAME, version)
     #
     # copy the package to the install host
     #
-    if os.system( "scp /tmp/DebianPackages/%s root@%s:/tmp" % (debName, host)):
+    if os.system( "scp ./DebianPackages/%s root@%s:/tmp" % (debName, host)):
+        print( "trouble copying the package to %s" % host)
+        sys.exit( 255)
+    if os.system( "scp ./DebianPackages/%s root@%s:/tmp" % (debName3, host)):
         print( "trouble copying the package to %s" % host)
         sys.exit( 255)
     #
@@ -92,10 +77,16 @@ def main():
     if os.system( 'ssh -l root %s "dpkg -i /tmp/%s"' % ( host, debName)): 
         print( "trouble installing the package on %s" % host)
         sys.exit( 255)
+    if os.system( 'ssh -l root %s "dpkg -i /tmp/%s"' % ( host, debName3)): 
+        print( "trouble installing the package on %s" % host)
+        sys.exit( 255)
     #
     # delete the deb file
     #
     if os.system( 'ssh -l root %s "/bin/rm /tmp/%s"' % (host, debName)):
+        print( "trouble removing deb file on %s" % host)
+        sys.exit( 255)
+    if os.system( 'ssh -l root %s "/bin/rm /tmp/%s"' % (host, debName3)):
         print( "trouble removing deb file on %s" % host)
         sys.exit( 255)
 
