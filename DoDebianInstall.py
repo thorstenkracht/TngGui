@@ -44,7 +44,11 @@ def main():
         print( "DoDebinaInstall.py: %s no root login " % host)
         sys.exit( 255)
 
-    version = handleVersion.findVersion()
+    #
+    # read the version
+    #
+    handleVers = handleVersion.handleVersion( ROOT_DIR)
+    version = handleVers.findVersion()
 
     argout = os.popen('ssh root@%s "uname -v"' % host).read()
     argout = argout.strip()

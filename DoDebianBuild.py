@@ -35,8 +35,9 @@ def main():
     #
     # increment the version 
     #
-    handleVersion.incrementVersion()
-    version = handleVersion.findVersion()
+    handleVers = handleVersion.handleVersion( ROOT_DIR)
+    handleVers.incrementVersion()
+    version = handleVers.findVersion()
 
     #
     # create the source distribution

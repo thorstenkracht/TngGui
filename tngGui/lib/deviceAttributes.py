@@ -376,20 +376,24 @@ class deviceAttributes( QtGui.QMainWindow):
         Spk
         '''
         self.dev[ 'proxy'].ClearError()
+        self.logWidget.append( "deviceAttributes.cb_clearError: clearError %s" % self.dev[ 'name']) 
 
     def cb_resetVfcAdc( self):
         self.dev[ 'proxy'].reset()
+        self.logWidget.append( "deviceAttributes.cb_resetVfcAdc: reset %s" % self.dev[ 'name']) 
 
     def cb_resetAllVfcAdc( self):
         '''
         after a reset of a single channel, all readings are 0, but
         the next gate period shows that not all are really reset
         '''
-        for dev in allVfcAdcs:
+        for dev in self.parent.devices.allVfcAdcs:
+            self.logWidget.append( "deviceAttributes.cb_resetAllVfcAdc: reset %s" % dev[ 'name']) 
             dev[ 'proxy'].reset()
 
     def cb_initVFCADC( self):
         self.dev[ 'proxy'].InitVFCADC()
+        self.logWidget.append( "deviceAttributes.cb_initVFCADC: InitVFCADC %s" % self.dev[ 'name']) 
 
 
     def cb_listMgConf( self):

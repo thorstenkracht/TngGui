@@ -17,7 +17,6 @@ import PySpectra.graPyspIfc as graPyspIfc
 import tngGui.lib.definitions as definitions
 import tngGui.lib.devices as devices
 import PySpectra.pySpectraGuiClass
-
 import PyTango
 
 
@@ -165,14 +164,14 @@ class mainMenu( QtGui.QMainWindow):
         self.nxselectorAction = QtGui.QAction('Nxselector', self)        
         self.nxselectorAction.triggered.connect( self.cb_launchNxselector)
         self.toolsMenu.addAction( self.nxselectorAction)
-
+        #
         self.motorMonitorAction = QtGui.QAction('SardanaMotorMonitor', self)        
         self.motorMonitorAction.triggered.connect( self.cb_launchMotorMonitor)
         self.toolsMenu.addAction( self.motorMonitorAction)
 
-        self.sardanaMonitorAction = QtGui.QAction('SardanaMonitor', self)        
-        self.sardanaMonitorAction.triggered.connect( self.cb_launchSardanaMonitor)
-        self.toolsMenu.addAction( self.sardanaMonitorAction)
+        #self.sardanaMonitorAction = QtGui.QAction('SardanaMonitor', self)        
+        #self.sardanaMonitorAction.triggered.connect( self.cb_launchSardanaMonitor)
+        #self.toolsMenu.addAction( self.sardanaMonitorAction)
 
         self.spockAction = QtGui.QAction('Spock', self)        
         self.spockAction.triggered.connect( self.cb_launchSpock)
@@ -780,7 +779,11 @@ class mainMenu( QtGui.QMainWindow):
         if display == ':0':
             sts = os.system( "gnome-terminal -e /usr/bin/spock -t spock &")
         else:
-            sts = os.system( "xterm -e /usr/bin/spock &")
+            if os.path.exists( "/usr/bin/terminator"):
+                sts = os.system( "terminator -e /usr/bin/spock &")
+            else: 
+                sts = os.system( "xterm -bg white -fg black -e /usr/bin/spock &")
+        return 
 
     def cb_launchPyspGui( self):
         #
@@ -1754,6 +1757,7 @@ class mainMenu( QtGui.QMainWindow):
 
             try:
                 dev[ 'proxy'].reset()
+                self.logWidget.append( "tngGuiClass.cb_resetCounter: reset %s" % dev[ 'name'])
             except Exception as e:
                 print( "Trouble to reset %s" % dev[ 'name'])
                 print( repr( e))
