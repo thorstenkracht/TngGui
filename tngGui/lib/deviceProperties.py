@@ -55,6 +55,22 @@ class deviceProperties( QtGui.QMainWindow):
             self.layout_grid.addWidget( line, count, 2)
             
             self.propDct[ prop] = { "w_value": value, "w_line": line}
+
+            if prop == 'VcCode' or prop == 'VmCode': 
+                b = QtGui.QPushButton(self.tr("Edit")) 
+                self.layout_grid.addWidget( b, count, 3)
+                fName = HasyUtils.getDeviceProperty( self.dev[ 'device'], prop, self.dev[ 'hostname'])
+                b.setToolTip( "Edit %s" % fName[0])
+                QtCore.QObject.connect( b, QtCore.SIGNAL( utils.fromUtf8("clicked()")), self.make_cb_editCallback( fName[0]))
+                b = QtGui.QPushButton(self.tr("Restart")) 
+                self.layout_grid.addWidget( b, count, 4)
+                srv = HasyUtils.getServerNameByDevice( self.dev[ 'device'], self.dev[ 'hostname'])
+                b.setToolTip( "Restart %s on %s" % (srv, self.dev[ 'hostname']))
+                QtCore.QObject.connect( b, QtCore.SIGNAL( utils.fromUtf8("clicked()")), self.make_cb_restartCallback( srv, self.dev[ 'hostname']))
+            else: 
+                self.layout_grid.addWidget( QtGui.QLabel(), count, 3)
+                self.layout_grid.addWidget( QtGui.QLabel(), count, 4)
+                
             count += 1
         #
         # Menu Bar
@@ -111,6 +127,24 @@ class deviceProperties( QtGui.QMainWindow):
         self.updateTimer.timeout.connect( self.cb_refreshProp)
         self.updateTimer.start( definitions.TIMEOUT_REFRESH)
 
+    def make_cb_editCallback( self, fName): 
+        def sub(): 
+            editor = os.getenv( "EDITOR")
+            if editor is None:
+                editor = "emacs"
+            self.logWidget.append( "%s %s&" % (editor, fName))
+            os.system( "%s %s&" % (editor, fName))
+            return 
+        return sub
+
+    def make_cb_restartCallback( self, srvName, hostName): 
+        def sub(): 
+            self.logWidget.append( "restart %s on %s" % (srvName, hostName))
+            HasyUtils.restartServer( srvName, hostName)
+            return 
+        return sub
+
+            
     def cb_helpWidget( self):
         w = helpBox.HelpBox( self, self.tr("Help Widget"), self.tr(
             "<h3>Properties</h3><p>"

@@ -879,6 +879,8 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
         posReq = (utils.getUnitLimitMax( self.dev, self.logWidget) - utils.getUnitLimitMin( self.dev, self.logWidget))*value/\
                  float(definitions.SLIDER_RESOLUTION) + utils.getUnitLimitMin( self.dev, self.logWidget)
+
+        self.logWidget.append( "moveMotor (slider): %s to %g" % (self.dev[ 'name'], posReq))
         self.moveTarget( posReq)
 
     def eventFilter(self, obj, event):
@@ -1021,9 +1023,11 @@ Btw: Key_Up/Down change the slew rate. <br>"
         # interfere with the user dragging the slider
         # 
         # always call setSliderScale() because e.g. DACs never 
-        # become MOVING
+        # become MOVING - this is not a good idea because
+        # it would move the slider while it is dragged. Bad luck 
+        # for DACs.
         #
-        if self.motorMoving or True:
+        if self.motorMoving:
             self.setSliderScale()
 
         y = self.getSignal()
@@ -1251,6 +1255,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
 
     def cb_stop( self): 
         if self.motorProxy.state() == PyTango.DevState.MOVING:
+            self.logWidget.append( "cb_stop: stopping %s" % (self.dev[ 'name']))
             utils.execStopMove( self.dev)
             while self.motorProxy.state() == PyTango.DevState.MOVING:
                 time.sleep(0.01)
@@ -1418,6 +1423,7 @@ Btw: Key_Up/Down change the slew rate. <br>"
         if len(temp) == 0:
             return
         posReq = float(temp)
+        self.logWidget.append( "moveTo: %s to %g" % (self.dev[ 'name'], posReq))
         if hasattr( self.motorProxy, "unitbacklash"):
             if posReq > utils.getUnitLimitMax( self.dev, self.logWidget):
                 posReq = utils.getUnitLimitMax( self.dev, self.logWidget)

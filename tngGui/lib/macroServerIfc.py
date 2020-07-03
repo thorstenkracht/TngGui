@@ -119,6 +119,23 @@ LogMacroDir: directory where the log will be stored<br>\
         self.statusBar.addPermanentWidget( self.exit) # 'permanent' to shift it right
         self.exit.clicked.connect( self.cb_closeMacroServerIfc )
         self.exit.setShortcut( "Alt+x")
+
+    def fillMgComboBox( self):
+        """
+        called initially but also after new MGs have been created
+        """
+        activeMntGrp = HasyUtils.getEnv( "ActiveMntGrp")
+        count = 0
+        self.activeMntGrpComboBox.clear()
+        for mg in HasyUtils.getMgAliases():
+            self.activeMntGrpComboBox.addItem( mg)
+            #
+            # initialize the comboBox to the current ActiveMntGrp
+            #
+            if activeMntGrp == mg:
+                self.activeMntGrpComboBox.setCurrentIndex( count)
+            count += 1
+        return 
         
     def prepareWidgets( self):
         w = QtGui.QWidget()
@@ -137,22 +154,25 @@ LogMacroDir: directory where the log will be stored<br>\
             hBox.addStretch()            
             self.activeMntGrpComboBox = QtGui.QComboBox()
             self.activeMntGrpComboBox.setMinimumWidth( 250)
-            count = 0
-            activeMntGrp = HasyUtils.getEnv( "ActiveMntGrp")
-            for mg in HasyUtils.getMgAliases():
-                self.activeMntGrpComboBox.addItem( mg)
-                #
-                # initialize the comboBox to the current ActiveMntGrp
-                #
-                if activeMntGrp == mg:
-                    self.activeMntGrpComboBox.setCurrentIndex( count)
-                count += 1
+            self.fillMgComboBox()
+            
             #
             # connect the callback AFTER the combox is filled. Otherwise there
             # will be some useless changes
             #
             self.activeMntGrpComboBox.currentIndexChanged.connect( self.cb_activeMntGrpChanged)
             hBox.addWidget( self.activeMntGrpComboBox)
+            hBox.addStretch()            
+            
+            w = QtGui.QLabel( "New MntGrp")
+            w.setToolTip( "Create new MG, use nxselector to populate the group")
+            w.setMinimumWidth( 120)
+            hBox.addWidget( w)
+            hBox.addStretch()            
+            self.newMgLine = QtGui.QLineEdit()
+            self.newMgLine.setAlignment( QtCore.Qt.AlignRight)
+            self.newMgLine.setMinimumWidth( 50)
+            hBox.addWidget( self.newMgLine)
             self.layout_v.addLayout( hBox)
         #
         # horizontal line
@@ -572,9 +592,86 @@ LogMacroDir: directory where the log will be stored<br>\
             hsh[ 'ShowCtrlAxis'] = False
         HasyUtils.setEnv( "_ViewOptions", hsh)
         
-        
-    def cb_applyMacroServerIfc( self):
 
+    def createMg( self, mgName):
+        #
+        # create a measurement group 
+        #
+        mgName = mgName.strip()
+        if len( mgName) == 0:
+            self.logWidget( "macroServerIfc.createMg: empty string")
+            return
+        
+        words = mgName.split( ' ')
+        if len( words) > 1:
+            self.logWidget( "macroServerIfc.createMg: too many words")
+            return 
+            
+        mgName = words[0]
+        #
+        # does the mgName exists already
+        #
+        for dev in self.parent.devices.allMGs:
+            if mgName.upper() == dev[ 'name'].upper():
+                self.logWidget.append( "macroServerIfc.createMg: %s exists already" % mgName)
+                return 
+                
+        lst = HasyUtils.getPoolNames()
+        if lst is None or len( lst) == 0:
+            self.logWidget.append( "macroServerIfc.createMg: no pool")
+            return
+        
+        mgConf = HasyUtils.MgUtils.MgConf( lst[0], mgName, True)
+
+        #
+        # take the first timer
+        #
+        lst = HasyUtils.getTimerAliases()
+        if lst is not None and len( lst) > 0:
+            timerName = lst[0]
+        else:
+            QtGui.QMessageBox.critical(self, 'Error', 
+                                       "macroServerIfc.cb_apply: MG %s cannot be created, there are no timers" % mgName,
+                                       QtGui.QMessageBox.Ok)
+            return 
+                
+        mgConf.addTimer( timerName)
+        mgConf.updateConfiguration()
+
+        hsh = {}
+        hsh[ 'control'] = 'tango'
+        hsh[ 'flagOffline'] = False
+        hsh[ 'name'] = mgName
+        hsh[ 'hostname'] = "%s:10000" % HasyUtils.getHostname()
+        hsh[ 'mgs'] = "timers = %s" % timerName
+        hsh[ 'fullName'] = "%s/none" % hsh[ 'hostname']
+        hsh[ 'module'] = "none"
+        hsh[ 'device'] = "none"
+        hsh[ 'type'] = 'measurement_group'
+        try: 
+            hsh[ 'proxy'] = PyTango.DeviceProxy( mgName)
+        except Exception as e:
+            print( "macroServerIfc.createMg: failed to create proxy to %s" % mgName)
+            print( repr( e))
+            return
+        self.parent.devices.allMGs.append( hsh)
+
+        HasyUtils.setEnv( "ActiveMntGrp", mgName)
+        self.logWidget.append( "macroServerIfc.createMg: ActiveMntGrp to %s: %s" % 
+                               ( mgName, hsh[ 'proxy'].ElementList))
+        self.fillMgComboBox()
+        
+        return 
+    
+    def cb_applyMacroServerIfc( self):
+        #
+        # create a new measurement group
+        #
+        mgName = str( self.newMgLine.text())
+        if len( mgName) > 0:
+            self.newMgLine.clear()
+            self.createMg( mgName)
+        
         for var in self.varsEnv:
             hsh = self.dct[ var]
             temp = str(hsh[ "w_line"].text())
@@ -662,8 +759,10 @@ LogMacroDir: directory where the log will be stored<br>\
         return 
             
     def cb_activeMntGrpChanged( self):
-        activeMntGrp = HasyUtils.getEnv( "ActiveMntGrp")
         temp = str(self.activeMntGrpComboBox.currentText())
+        if len( temp.strip()) == 0:
+            return 
         HasyUtils.setEnv( "ActiveMntGrp", temp)
         elements = HasyUtils.getMgElements( temp)
-        self.logWidget.append( "ActiveMntGrp to %s: %s" % (temp, elements))
+        #self.logWidget.append( "macroServerIfc.cb_activeMntGrpChanged: ActiveMntGrp to %s: %s" % (temp, elements))
+        return 

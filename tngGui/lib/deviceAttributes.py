@@ -424,8 +424,6 @@ class deviceAttributes( QtGui.QMainWindow):
         '''
         delete a MG
         '''
-        global allMGs
-
         reply = QtGui.QMessageBox.question(self, 'YesNo', "Really delete %s" % ( self.dev[ 'name']), 
                                            QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         if reply != QtGui.QMessageBox.Yes:
@@ -460,12 +458,12 @@ class deviceAttributes( QtGui.QMainWindow):
         #
         # remove the deleted MG from allMGs
         #
-        lst = allMGs[:]
-        allMGs = []
+        lst = self.parent.devices.allMGs[:]
+        self.parent.devices.allMGs = []
         for elm in lst: 
             if elm[ 'name'].lower() == self.dev[ 'name'].lower():
                 continue
-            allMGs.append( elm)
+            self.parent.devices.allMGs.append( elm)
         self.parent.fillMGs()
         self.logWidget.append( "cb_deleteMg: deleted %s" % self.dev[ 'name'])
         self.close()

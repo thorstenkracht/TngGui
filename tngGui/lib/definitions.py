@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-TIMEOUT_REFRESH = 500
+TIMEOUT_REFRESH = 200
 TIMEOUT_REFRESH_MOTOR = 500
 ACTIVITY_SYMBOLS = ['|', '/', '-', '\\', '|', '/', '-', '\\'] 
 SLIDER_RESOLUTION = 500

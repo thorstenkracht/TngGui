@@ -15,8 +15,6 @@ import HasyUtils
 import handleVersion
 from optparse import OptionParser
 
-flag = True
-
 def main():
 
     DIR_NAME = os.getenv( "PWD").split( "/")[-1]
@@ -40,62 +38,71 @@ def main():
     
     (options, args) = parser.parse_args()
 
-    if options.execute is False:
-        parser.print_help()
-        sys.exit(255)
+
+    flagExecute = False
+    if options.execute is True:
+        flagExecute = True
 
     os.chdir( ROOT_DIR)
 
-    version = handleVersion.findVersion()
+    #
+    handleVers = handleVersion.handleVersion( ROOT_DIR)
+    version = handleVers.findVersion()
     print ( "UpdateDebianPackage: version %s %s" % (version, os.getenv( "PWD")))
 
     for versOS in [ 'stretch', 'buster']: 
 
         cmd = "export GNUPGHOME=~/.gnupg-repo && reprepro -V remove %s python-%s" % (versOS, PACKET_NAME)
         print( cmd)
-        if flag and os.system( cmd):
+        if flagExecute and os.system( cmd):
             pass
 
         cmd = "export GNUPGHOME=~/.gnupg-repo && reprepro -V remove %s python3-%s" % (versOS, PACKET_NAME)
         print( cmd) 
-        if flag and os.system( cmd): 
+        if flagExecute and os.system( cmd): 
             pass
 
         cmd = "export GNUPGHOME=~/.gnupg-repo && reprepro -V includedeb %s /home/kracht/Misc/%s/DebianPackages/python-%s_%s_all.deb" % \
                       (versOS, DIR_NAME, PACKET_NAME, version)
         print( cmd) 
-        if flag and os.system( cmd):
+        if flagExecute and os.system( cmd):
             print( "UpdateDebianRepo: reprepro includedeb %s failed" % versOS)
             sys.exit( 255)
 
         cmd = "export GNUPGHOME=~/.gnupg-repo && reprepro -V includedeb %s /home/kracht/Misc/%s/DebianPackages/python3-%s_%s_all.deb" % \
                       (versOS, DIR_NAME, PACKET_NAME, version)
         print( cmd) 
-        if flag and os.system( cmd):
+        if flagExecute and os.system( cmd):
             print( "UpdateDebianRepo: reprepro includedeb %s failed (P3)" % versOS)
             sys.exit( 255)
 
         cmd = "wget -q --output-document=- 'http://nims.desy.de/cgi-bin/hasylabDEBSync.cgi'"
         print( cmd) 
-        if flag and os.system( cmd):
+        if flagExecute and os.system( cmd):
             print( "UpdateDebianRepo: wget nims failed")
             sys.exit( 255)
 
         cmd = "cp -v /home/kracht/Misc/%s/DebianPackages/python-%s_%s_all.deb /nfs/fs/fsec/DebianPackages/%s/p" % \
                       ( DIR_NAME, PACKET_NAME, version, versOS)
         print( cmd) 
-        if flag and os.system( cmd):
+        if flagExecute and os.system( cmd):
             print( "UpdateDebianRepo: copy to stretch dir failed")
             sys.exit( 255)
 
         cmd = "cp -v /home/kracht/Misc/%s/DebianPackages/python3-%s_%s_all.deb /nfs/fs/fsec/DebianPackages/%s/p" % \
                       ( DIR_NAME, PACKET_NAME, version, versOS)
         print( cmd) 
-        if flag and os.system( cmd):
+        if flagExecute and os.system( cmd):
             print( "UpdateDebianRepo: copy to stretch dir failed")
             sys.exit( 255)
 
     print( ">>> UpdateDebianRepo.py DONE")
+
+    if not flagExecute: 
+        print( "\n")
+        print( "this was just a test run, use '-x' to execute\n")
+        print( "\n")
+
     return 
 
 if __name__ == "__main__": 

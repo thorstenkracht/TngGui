@@ -52,7 +52,10 @@ class mainMenu( QtGui.QMainWindow):
     '''
     def __init__( self, args = None, app = None, devs = None, parent = None):
         super( mainMenu, self).__init__( parent)
+        
+
         self.setWindowTitle( "TngGui")
+
 
         if PySpectra.InfoBlock.monitorGui is None:
             PySpectra.InfoBlock.setMonitorGui( self)
@@ -364,6 +367,8 @@ class mainMenu( QtGui.QMainWindow):
         self.helpMenu = self.menuBarActivity.addMenu('Help')
         self.versionAction = self.helpMenu.addAction(self.tr("Version"))
         self.versionAction.triggered.connect( self.cb_version)
+        self.pythonVersionAction = self.helpMenu.addAction(self.tr("PythonVersion"))
+        self.pythonVersionAction.triggered.connect( self.cb_pythonVersion)
         self.colorCodeAction = self.helpMenu.addAction(self.tr("Color code"))
         self.colorCodeAction.triggered.connect( self.cb_colorCode)
 
@@ -829,6 +834,11 @@ class mainMenu( QtGui.QMainWindow):
             "<li> 23.03.2018: vfcadcs and vcexecutors can be signal counters </li>"
             "</ul>"
                 ))
+        w.show()
+
+    def cb_pythonVersion(self):
+        w = helpBox.HelpBox( self, self.tr("HelpWidget"), self.tr(
+            "Python %d.%d" % (sys.version_info.major, sys.version_info.minor)))
         w.show()
 
     def cb_colorCode( self):

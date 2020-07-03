@@ -27,7 +27,7 @@ def main():
         print "DoAll: %d/%d (missed %d) %s " % (count, sz, countFailed, host)
         count += 1
 
-    if os.system( "./UpdateDebianRepo.py"):
+    if os.system( "./UpdateDebianRepo.py -x"):
         print "Failed to update the debian repo"
     return
 
