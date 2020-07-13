@@ -411,6 +411,9 @@ class mainMenu( QtGui.QMainWindow):
         # all server logs
         #
         logFiles = glob.glob( "/var/tmp/ds.log/*.log")
+        
+        logFiles.sort()
+
         for fl in logFiles:
             if fl.find( '[') > 0 and fl.find( ']') > 0: 
                 continue

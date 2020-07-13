@@ -53,11 +53,8 @@ class mcaWidget( QtGui.QMainWindow):
                 self.logWidget.append( "mcaWidget: there are no MCAs")
             raise ValueError( "mcaWidget: there are no MCAs")
 
-        for dev in self.selectedMCAs: 
-            dev[ 'proxy'].stop()
-
-        self.selectedTimers.sort()
-        self.selectedMCAs.sort()
+        #self.selectedTimers.sort()
+        #self.selectedMCAs.sort()
         self.mcaOntop = self.selectedMCAs[0]
         #
         # set the window title
@@ -93,7 +90,11 @@ class mcaWidget( QtGui.QMainWindow):
         #
         self.mcaTimer = QtCore.QTimer( self)
         self.mcaTimer.timeout.connect( self.updateMeasurement)
-        
+
+        for dev in self.selectedMCAs: 
+            dev[ 'proxy'].stop()
+        self.clearMCAs()
+
         return 
 
     def getDev( self, name): 
@@ -115,8 +116,8 @@ class mcaWidget( QtGui.QMainWindow):
             self.activityIndex = 0
         self.activity.setTitle( definitions.ACTIVITY_SYMBOLS[ self.activityIndex])
 
-        if 'scan' in self.mcaOntop: 
-            self.totalCountsLabel.setText( "%g" % self.mcaOntop[ 'scan'].getTotalCounts())
+        if 'scanGQE' in self.mcaOntop: 
+            self.totalCountsLabel.setText( "%g" % self.mcaOntop[ 'scanGQE'].getTotalCounts())
 
         #print( "refreshMCAWidget %s" % self.statusMCA)
         return 
@@ -325,8 +326,8 @@ class mcaWidget( QtGui.QMainWindow):
             if elm.find( '_mca') != -1: 
                 self.selectedMCAs.append( self.getDev( elm))
 
-        self.selectedTimers.sort()
-        self.selectedMCAs.sort()
+        #self.selectedTimers.sort()
+        #self.selectedMCAs.sort()
         self.mcaComboBox.clear()
         for dev in self.selectedMCAs: 
             self.mcaComboBox.addItem( dev[ 'name'])
@@ -356,14 +357,13 @@ class mcaWidget( QtGui.QMainWindow):
     def updateMeasurement( self): 
         """
         """
-
         if self.checkTimers(): 
             return 
+
 
         if self.flagTimerWasBusy: 
             self.stopMCAs()
             self.readMCAs()
-            self.displayMCAs()
             self.calcROIs()
             self.readCounters()
             self.preparePetraCurrent()
@@ -386,7 +386,7 @@ class mcaWidget( QtGui.QMainWindow):
             else:
                 timeGate = self.timeRemaining
 
-            self.clearMCAs()
+            #self.clearMCAs()
             self.startMCAs()
 
             self.resetCounters()
@@ -429,9 +429,9 @@ class mcaWidget( QtGui.QMainWindow):
         self.clearMCAs()
 
         for mca in self.selectedMCAs:
-            if 'scan' in mca: 
-                graPyspIfc.deleteScan( mca[ 'scan'])
-                del mca[ 'scan']
+            if 'scanGQE' in mca: 
+                graPyspIfc.deleteScan( mca[ 'scanGQE'])
+                del mca[ 'scanGQE']
 
         graPyspIfc.cls()
         #graPyspIfc.delete()
@@ -511,25 +511,20 @@ class mcaWidget( QtGui.QMainWindow):
         for mca in self.selectedMCAs:
             mca[ 'proxy'].stop()
         
-    def displayMCAs( self): 
-        #graPyspIfc.cls()
-        #graPyspIfc.display()
-        return 
-
     def readMCAs( self): 
         for mca in self.selectedMCAs:
             mca[ 'proxy'].read()
-            if 'scan' in mca: 
-                if len( mca[ 'scan'].x) != mca[ 'proxy'].DataLength:
-                    graPyspIfc.deleteScan( mca[ 'scan'])
-                    mca[ 'scan'] = graPyspIfc.Scan( name = mca[ 'name'], 
+            if 'scanGQE' in mca: 
+                if len( mca[ 'scanGQE'].x) != mca[ 'proxy'].DataLength:
+                    graPyspIfc.deleteScan( mca[ 'scanGQE'])
+                    mca[ 'scanGQE'] = graPyspIfc.Scan( name = mca[ 'name'], 
                                                     y = mca[ 'proxy'].data)
                     graPyspIfc.display()
                 else:  
-                    mca[ 'scan'].smartUpdateDataAndDisplay( y = numpy.copy( mca[ 'proxy'].data))
+                    mca[ 'scanGQE'].smartUpdateDataAndDisplay( y = numpy.copy( mca[ 'proxy'].data))
             else: 
-                mca[ 'scan'] = graPyspIfc.Scan( name = mca[ 'name'], 
-                                                y = mca[ 'proxy'].data)
+                mca[ 'scanGQE'] = graPyspIfc.Scan( name = mca[ 'name'], 
+                                                   y = mca[ 'proxy'].data)
                 graPyspIfc.display()
 
         return 

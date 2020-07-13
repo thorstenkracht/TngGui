@@ -13,6 +13,7 @@ from PyQt4 import QtCore, QtGui
 import tngGui.lib.devices as devices
 import tngGui.lib.mcaWidget as mcaWidget
 import PySpectra
+import HasyUtils.MgUtils 
 
 class dummy(): 
     counterName = None
@@ -45,9 +46,12 @@ class testMCAMenu( unittest.TestCase):
             time.sleep( 0.01)
 
     def testMCAMenu( self):
-
         print( "testMCAMenu.testMCAMenu, start")
 
+        mg = HasyUtils.MgUtils.MgConf( None, "mg_tnggui", True)
+        mg.addTimer( "eh_t01")
+        mg.addMCA( "eh_mca01")
+        mg.updateConfiguration()
         #
         self.assertEqual( len(PySpectra.getGqeList()), 0)
 
