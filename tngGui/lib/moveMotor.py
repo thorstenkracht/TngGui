@@ -129,7 +129,13 @@ class moveMotor( QtGui.QMainWindow):
         #
         # 
         #
-        self.updateWidgets()
+        try: 
+            self.updateWidgets()
+        except Exception as e:
+            self.logWidget.append( "moveMotor.__init__(): error from updateWidgets")
+            self.logWidget.append( "moveMotor.__init__(): %s" % repr( e))
+            raise ValueError( "moveMotor.__init__(): error from updatWidgets")
+                                   
         self.signalChanged() # needs self.signalMaxString
         self.updateTimer.start( definitions.TIMEOUT_REFRESH_MOTOR) 
 
@@ -147,6 +153,7 @@ class moveMotor( QtGui.QMainWindow):
         # update the widgets
         #
         self.w_alias.setText( self.dev[ 'name'])
+        self.w_serverName.setText( HasyUtils.getServerNameByDevice( self.dev[ 'proxy'].name()))
         self.w_motorPosition.setText( utils.getPositionString( self.dev))
 
         try:
@@ -212,7 +219,7 @@ class moveMotor( QtGui.QMainWindow):
         else:
             self.w_zmxAttrButton.setEnabled( False)
 
-        self.w_signalLabel.setText( "(%s, %s, %g)" % ( self.timerName, self.counterName, self.sampleTime))
+        self.w_signalLabel.setText( "(%s, %s, %g)" % ( str(self.timerName), str(self.counterName), self.sampleTime))
 
     def prepareWidgets( self):
         w = QtGui.QWidget()
@@ -227,6 +234,8 @@ class moveMotor( QtGui.QMainWindow):
         self.w_alias.clicked.connect( self.cb_selectMotor)
         hBox.addWidget( self.w_alias)
         hBox.addStretch()            
+        self.w_serverName = QtGui.QLabel()
+        hBox.addWidget( self.w_serverName)
         self.w_cw = QtGui.QLabel("cw")
         self.w_ccw = QtGui.QLabel( "ccw")
         hBox.addWidget( self.w_cw)
@@ -693,12 +702,15 @@ Btw: Key_Up/Down change the slew rate. <br>"
         the user should see the name, e.g. d1_t01, only. 
         the device, e.g. p09/dgg2/d1.01, is for the proxy only
         '''
+        argout = True
         for dev in self.devices.allDevices:
             if dev['type'] == 'timer':
                 self.timerName = dev['name']
                 break
         else:
             self.logWidget.append( "findTimer: no timer found")
+            argout = False
+        return argout
 
     def findCounter( self):
         '''
@@ -706,12 +718,15 @@ Btw: Key_Up/Down change the slew rate. <br>"
         the user should see the name, e.g. d1_c01, only. 
         the device, e.g. p09/counter/d1.01, is for the proxy only
         '''
+        argout = True
         for dev in self.devices.allDevices:
             if dev['type'] == 'counter' and dev['module'].lower() == 'sis3820':
                 self.counterName = dev['name']
                 break        
         else:
             self.logWidget.append( "findCounter: no counter found")
+            argout = False
+        return argout
         
     def signalChanged( self):
         '''
@@ -737,6 +752,8 @@ Btw: Key_Up/Down change the slew rate. <br>"
                     break
 
         for dev in self.devices.allDevices:
+            if self.counterName is None:
+                break
             if dev['name'] == self.counterName:
                 self.counterDev = dev
                 #

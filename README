@@ -1,6 +1,16 @@
 
-see README.md
+DoDebianBuild.py
+  create a new package
 
+DoDebianInstall.py
+  update package on a single host,  dependencies are ignored
 
+Update_files.pl
+  updated the changed files on a single host
 
-
+UpdateDebianRepo.py
+  update the debian repo
+  
+DoAll.py
+  -r update the repo before installing all hosts
+  -x upgrade all hosts
