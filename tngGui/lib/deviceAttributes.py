@@ -22,16 +22,29 @@ class deviceAttributes( QtGui.QMainWindow):
         self.layout_v = QtGui.QVBoxLayout()
         w.setLayout( self.layout_v)
         self.setCentralWidget( w)
+        #
+        # name, full device name
+        #
         alias_l = QtGui.QLabel( self.dev[ 'name'])
-        name_l = QtGui.QLabel( "%s/%s" % (self.dev[ 'hostname'], self.dev[ 'device']))
+        name_l = QtGui.QLabel( "FullName: %s/%s" % (self.dev[ 'hostname'], self.dev[ 'device']))
+        try:
+            if hasattr( self.dev[ 'proxy'], 'TangoDevice'):
+                starter_l = QtGui.QLabel( "StarterHost: %s" % (HasyUtils.getStarterHostByDevice( self.dev[ 'proxy'].TangoDevice)))
+            else: 
+                starter_l = QtGui.QLabel( "StarterHost: %s" % (HasyUtils.getStarterHostByDevice( self.dev[ 'proxy'].name())))
+        except Exception as e: 
+                starter_l = QtGui.QLabel( "n.n.")
+                self.logWidget.append( "%s" % repr( e))
+                
         layout_h = QtGui.QHBoxLayout()
         layout_h.addWidget( alias_l)
         layout_h.addWidget( name_l)
+        layout_h.addWidget( starter_l)
         self.layout_v.addLayout( layout_h)
         self.layout_grid = QtGui.QGridLayout()
         self.layout_v.addLayout( self.layout_grid)
 
-        self.fillAttributes()
+        self.prepareAttributes()
         
         #
         # Menu Bar
@@ -171,7 +184,7 @@ class deviceAttributes( QtGui.QMainWindow):
         self.updateTimer.timeout.connect( self.cb_refreshAttr)
         self.updateTimer.start( definitions.TIMEOUT_REFRESH)
 
-    def fillAttributes( self): 
+    def prepareAttributes( self): 
         count = 0
         #
         # for selected attributes
@@ -504,7 +517,13 @@ class deviceAttributes( QtGui.QMainWindow):
         lst = self.dev[ 'proxy'].ElementList
         for elm in lst:
             p = PyTango.DeviceProxy( elm)
-            self.logWidget.append( "%s state %s" % (elm, repr( p.state())))
+            self.logWidget.append( "%s state %s (Pool)" % (elm, repr( p.state())))
+            try:
+                if hasattr( p, 'TangoDevice'):
+                    pT = PyTango.DeviceProxy( p.TangoDevice)
+                    self.logWidget.append( "  %s state %s (Tango Server)" % (pT.name(), repr( pT.state())))
+            except:
+                pass
         return 
         
     def cb_launchCommands( self): 
@@ -890,16 +909,16 @@ class deviceAttributes( QtGui.QMainWindow):
         temp = line.text()
         try:
             if attrInfo.data_type == PyTango.CmdArgType.DevBoolean:
-                if temp.lower() == "false": 
+                if str(temp).lower() == "false": 
                     t = False
-                elif temp.lower() == "true": 
+                elif str( temp).lower() == "true": 
                     t = True
                 self.dev[ 'proxy'].write_attribute( attrInfo.name, t)
             elif attrInfo.data_type == PyTango.CmdArgType.DevDouble or \
                  attrInfo.data_type == PyTango.CmdArgType.DevFloat:
                 self.dev[ 'proxy'].write_attribute( attrInfo.name, float(temp))
             elif attrInfo.data_type == PyTango.CmdArgType.DevString:
-                self.dev[ 'proxy'].write_attribute( attrInfo.name, temp)
+                self.dev[ 'proxy'].write_attribute( attrInfo.name, str( temp))
             elif attrInfo.data_type == PyTango.CmdArgType.DevLong or \
                  attrInfo.data_type == PyTango.CmdArgType.DevULong or \
                  attrInfo.data_type == PyTango.CmdArgType.DevULong64 or \
@@ -1443,7 +1462,7 @@ The closed loop is active after the next move.\
             elif attrInfo.data_type == PyTango.CmdArgType.DevFloat:
                 self.dev[ 'proxy'].write_attribute( attr, float(temp))
             elif attrInfo.data_type == PyTango.CmdArgType.DevString:
-                self.dev[ 'proxy'].write_attribute( attr, temp)
+                self.dev[ 'proxy'].write_attribute( attr, str( temp))
             else:
                 print( "dataType not identified %s" % attrInfo.data_type)
         except Exception as e:
@@ -1765,7 +1784,7 @@ class motorZmxAttributes( QtGui.QMainWindow):
             elif attrInfo.data_type == PyTango.CmdArgType.DevFloat:
                 self.zmx.write_attribute( attr, float(temp))
             elif attrInfo.data_type == PyTango.CmdArgType.DevString:
-                self.zmx.write_attribute( attr, temp)
+                self.zmx.write_attribute( attr, str(temp))
             else:
                 print( "dataType not identified %s" % attrInfo.data_type)
 

@@ -39,6 +39,7 @@ class Devices():
         self.allDoors = []
         self.allMSs = []
         self.allPools = []
+        self.allNXSConfigServer = []
 
         self.args = args
         if xmlFile is None: 
@@ -71,6 +72,7 @@ class Devices():
         self.findAllDoors()
         self.findAllMSs()
         self.findAllPools()
+        self.findAllNXSConfigServer()
 
 
         timerName = None
@@ -555,6 +557,22 @@ class Devices():
             self.allPools.append( dev)
 
         self.allPools = sorted( self.allPools, key=lambda k: k['name'])
+        return 
+
+    def findAllNXSConfigServer( self):
+        self.allNXSConfigServer = []
+        for elm in HasyUtils.getDeviceNamesByClass( "NXSConfigServer"): 
+            dev = {}
+            dev[ 'name'] = elm
+            dev[ 'device'] = elm
+            dev[ 'type'] = "nxsconfigserver"
+            dev[ 'module'] = "nxsconfigserver"
+            dev[ 'hostname'] = "%s" % os.getenv( "TANGO_HOST")
+            dev[ 'fullName'] = "%s/%s" % (dev[ 'hostname'], dev[ 'device'])
+            dev[ 'proxy'] = createProxy( dev)
+            self.allNXSConfigServer.append( dev)
+
+        self.allNXSConfigServer = sorted( self.allNXSConfigServer, key=lambda k: k['name'])
         return 
 
     def findAllCounters( self):

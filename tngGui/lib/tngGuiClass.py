@@ -164,13 +164,10 @@ class mainMenu( QtGui.QMainWindow):
         # Tools menu
         #
         self.toolsMenu = self.menuBar.addMenu('&Tools')
+
         self.nxselectorAction = QtGui.QAction('Nxselector', self)        
         self.nxselectorAction.triggered.connect( self.cb_launchNxselector)
         self.toolsMenu.addAction( self.nxselectorAction)
-        #
-        self.motorMonitorAction = QtGui.QAction('SardanaMotorMonitor', self)        
-        self.motorMonitorAction.triggered.connect( self.cb_launchMotorMonitor)
-        self.toolsMenu.addAction( self.motorMonitorAction)
 
         #self.sardanaMonitorAction = QtGui.QAction('SardanaMonitor', self)        
         #self.sardanaMonitorAction.triggered.connect( self.cb_launchSardanaMonitor)
@@ -190,18 +187,14 @@ class mainMenu( QtGui.QMainWindow):
             self.pyspGuiAction.triggered.connect( self.cb_launchPyspGui)
             self.toolsMenu.addAction( self.pyspGuiAction)
 
-            self.evinceAction = QtGui.QAction('evince pyspOutput.pdf', self)        
-            self.evinceAction.triggered.connect( self.cb_launchEvince)
-            self.toolsMenu.addAction( self.evinceAction)
-
-        self.macroguiAction = QtGui.QAction('Macrogui', self)        
-        self.macroguiAction.triggered.connect( self.cb_launchMacrogui)
-        self.toolsMenu.addAction( self.macroguiAction)
-
         self.mcaAction = QtGui.QAction('MCA', self)        
         self.mcaAction.triggered.connect( self.cb_launchMCA)
         self.toolsMenu.addAction( self.mcaAction)
 
+        #
+        self.motorMonitorAction = QtGui.QAction('SardanaMotorMonitor', self)        
+        self.motorMonitorAction.triggered.connect( self.cb_launchMotorMonitor)
+        self.toolsMenu.addAction( self.motorMonitorAction)
 
         #self.toolsMenu.addAction( self.spectraAction)
 
@@ -326,9 +319,13 @@ class mainMenu( QtGui.QMainWindow):
             self.tableMenu.addAction( self.PiLCModulesTableAction)
 
         if len( self.devices.allTimers) > 0:
-            self.timerTableAction = QtGui.QAction('Timers (extra widget)', self)        
-            self.timerTableAction.triggered.connect( self.cb_launchTimer)
+            self.timerTableAction = QtGui.QAction('Timers', self)        
+            self.timerTableAction.triggered.connect( self.cb_timerTable)
             self.tableMenu.addAction( self.timerTableAction)
+
+            self.timerExtraTableAction = QtGui.QAction('Timers (extra widget)', self)        
+            self.timerExtraTableAction.triggered.connect( self.cb_launchTimerExtra)
+            self.tableMenu.addAction( self.timerExtraTableAction)
 
         if len( self.devices.allVfcAdcs) > 0:
             self.vfcadcTableAction = QtGui.QAction('VFCADCs', self)        
@@ -355,6 +352,11 @@ class mainMenu( QtGui.QMainWindow):
             self.poolTableAction.triggered.connect( self.cb_poolTable)
             self.tableMenu.addAction( self.poolTableAction)
 
+        if len( self.devices.allNXSConfigServer) > 0:
+            self.nxsConfigServerTableAction = QtGui.QAction('NXSConfigServer', self)        
+            self.nxsConfigServerTableAction.triggered.connect( self.cb_nxsConfigServerTable)
+            self.tableMenu.addAction( self.nxsConfigServerTableAction)
+            
         #
         # the activity menubar: help and activity
         #
@@ -434,10 +436,10 @@ class mainMenu( QtGui.QMainWindow):
             return 
         return cb
             
-    def cb_launchTimer( self): 
-        self.w_timer = tngAPI.timerWidget( self.logWidget, self.devices.allTimers, self)
-        self.w_timer.show()
-        return self.w_timer
+    def cb_launchTimerExtra( self): 
+        self.w_timerExtra = tngAPI.timerWidget( self.logWidget, self.devices.allTimers, self)
+        self.w_timerExtra.show()
+        return self.w_timerExtra
 
     def cb_motorTable( self):
         self.fillMotorList()
@@ -460,6 +462,9 @@ class mainMenu( QtGui.QMainWindow):
     def cb_mcaTable( self):
         self.fillMCAs()
         
+    def cb_timerTable( self):
+        self.fillTimers()
+        
     def cb_counterTable( self):
         self.fillCounters()
         
@@ -477,6 +482,9 @@ class mainMenu( QtGui.QMainWindow):
         
     def cb_poolTable( self):
         self.fillPools()
+        
+    def cb_nxsConfigServerTable( self):
+        self.fillNXSConfigServer()
     #
     # the closeEvent is called when the window is closed by 
     # clicking the X at the right-upper corner of the frame
@@ -773,9 +781,6 @@ class mainMenu( QtGui.QMainWindow):
         #self.nxselector = a.main()
         os.system( "/usr/bin/nxselector &")
 
-    def cb_launchMacrogui( self):
-        os.system( "/usr/bin/taurusgui macrogui &")
-
     def cb_launchMotorMonitor( self):
         os.system( "/usr/bin/SardanaMotorMonitor.py &")
 
@@ -813,9 +818,6 @@ class mainMenu( QtGui.QMainWindow):
         
     def cb_launchPyspMonitor( self):
         os.system( "/usr/bin/pyspMonitor.py &")
-
-    def cb_launchEvince( self):
-        sts = os.system( "evince pyspOutput.pdf &")
 
     def __del__( self):
         pass
@@ -1247,6 +1249,46 @@ class mainMenu( QtGui.QMainWindow):
         self.scrollArea.setWidget( self.base)
         self.refreshFunc = self.refreshModuleTangos
 
+    def fillTimers( self):
+
+        if self.base is not None:
+            self.base.destroy( True, True)
+
+        self.base = QtGui.QWidget()
+        layout_grid = QtGui.QGridLayout()
+
+        layout_grid.addWidget( QtGui.QLabel( "Alias"), 0, 0)
+        layout_grid.addWidget( QtGui.QLabel( "Value"), 0, 1)
+        layout_grid.addWidget( QtGui.QLabel( "Module"), 0, 2)
+        layout_grid.addWidget( QtGui.QLabel( "DeviceName"), 0, 3)
+        count = 1
+        for dev in self.devices.allTimers:
+            aliasName = utils.QPushButtonTK( dev['name'])
+            aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
+            aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
+            aliasName.mb2.connect( self.make_cb_commands( dev, self.logWidget))
+            aliasName.mb3.connect( self.make_cb_properties( dev, self.logWidget)) 
+            layout_grid.addWidget( aliasName, count, 0)
+
+            moduleName = QtGui.QLabel()
+            moduleName.setText( "%s" % (dev['module']))
+            moduleName.setAlignment( QtCore.Qt.AlignLeft)
+            moduleName.setFixedWidth( definitions.POSITION_WIDTH)
+            layout_grid.addWidget( moduleName, count, 1 )
+            #
+            # device name
+            #
+            devName = QtGui.QLabel()
+            devName.setText( "%s/%s" % (dev['hostname'], dev['device']))
+            devName.setAlignment( QtCore.Qt.AlignLeft)
+            layout_grid.addWidget( devName, count, 2 )
+            
+            count += 1
+
+        self.base.setLayout( layout_grid)
+        self.scrollArea.setWidget( self.base)
+        self.refreshFunc = self.refreshTimers
+
     def fillMCAs( self):
 
         if self.base is not None:
@@ -1506,6 +1548,30 @@ class mainMenu( QtGui.QMainWindow):
         self.base.setLayout( layout_grid)
         self.scrollArea.setWidget( self.base)
         self.refreshFunc = self.refreshPools
+
+    def fillNXSConfigServer( self):
+
+        if self.base is not None:
+            self.base.destroy( True, True)
+
+        self.base = QtGui.QWidget()
+        layout_grid = QtGui.QGridLayout()
+
+        layout_grid.addWidget( QtGui.QLabel( "Name"), 0, 0)
+        count = 1
+        for dev in self.devices.allNXSConfigServer:
+            aliasName = utils.QPushButtonTK( dev['name'])
+            aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
+            aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
+            aliasName.mb2.connect( self.make_cb_commands( dev, self.logWidget))
+            aliasName.mb3.connect( self.make_cb_properties( dev, self.logWidget)) 
+            layout_grid.addWidget( aliasName, count, 0)
+            
+            count += 1
+
+        self.base.setLayout( layout_grid)
+        self.scrollArea.setWidget( self.base)
+        self.refreshFunc = self.refreshNXSConfigServer
         
 
     def cb_refreshMain( self):
@@ -1738,6 +1804,9 @@ class mainMenu( QtGui.QMainWindow):
     def refreshModuleTangos( self):
         pass
 
+    def refreshTimers( self):
+        pass
+
     def refreshMCAs( self):
         pass
 
@@ -1751,6 +1820,9 @@ class mainMenu( QtGui.QMainWindow):
         pass
 
     def refreshPools( self):
+        pass
+
+    def refreshNXSConfigServer( self):
         pass
 
     def handlerALRM( signum, frame, arg3):

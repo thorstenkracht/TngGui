@@ -60,6 +60,9 @@ class deviceCommands( QtGui.QMainWindow):
         self.helpMenu = self.menuBarActivity.addMenu('Help')
         self.helpCommand = self.helpMenu.addAction(self.tr("Widget"))
         self.helpCommand.triggered.connect( self.cb_helpCommand)
+        if self.dev[ 'module'] == 'nxsconfigserver': 
+            self.helpNXSConfigServer = self.helpMenu.addAction(self.tr("NXSConfigServer"))
+            self.helpNXSConfigServer.triggered.connect( self.cb_helpNXSConfigServer)
 
         self.activityIndex = 0
         self.activity = self.menuBarActivity.addMenu( "_")
@@ -93,7 +96,18 @@ class deviceCommands( QtGui.QMainWindow):
         w = helpBox.HelpBox( self, self.tr("Help Commands"), self.tr(
             "<h3>Commands</h3>"
             "<ul>"
-            "<li> Arrays elements are separated by commas"
+            "<li> Array elements are separated by commas"
+            "</ul>"
+                ))
+        w.show()
+
+    def cb_helpNXSConfigServer( self):
+        w = helpBox.HelpBox( self, self.tr("Help NXSConfigServer"), self.tr(
+            "<h3>Debugging</h3>"
+            "<ul>"
+            "<li> nxselector displays invalid component and data source"
+            "<li> insert the data source in DataSources and click button"
+            "<li> the logWidget displays the details"
             "</ul>"
                 ))
         w.show()

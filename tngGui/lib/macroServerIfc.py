@@ -164,16 +164,6 @@ LogMacroDir: directory where the log will be stored<br>\
             hBox.addWidget( self.activeMntGrpComboBox)
             hBox.addStretch()            
             
-            w = QtGui.QLabel( "New MntGrp")
-            w.setToolTip( "Create new MG, use nxselector to populate the group")
-            w.setMinimumWidth( 120)
-            hBox.addWidget( w)
-            hBox.addStretch()            
-            self.newMgLine = QtGui.QLineEdit()
-            self.newMgLine.setAlignment( QtCore.Qt.AlignRight)
-            self.newMgLine.setMinimumWidth( 50)
-            hBox.addWidget( self.newMgLine)
-            self.layout_v.addLayout( hBox)
         #
         # horizontal line
         #
@@ -592,85 +582,7 @@ LogMacroDir: directory where the log will be stored<br>\
             hsh[ 'ShowCtrlAxis'] = False
         HasyUtils.setEnv( "_ViewOptions", hsh)
         
-
-    def createMg( self, mgName):
-        #
-        # create a measurement group 
-        #
-        mgName = mgName.strip()
-        if len( mgName) == 0:
-            self.logWidget( "macroServerIfc.createMg: empty string")
-            return
-        
-        words = mgName.split( ' ')
-        if len( words) > 1:
-            self.logWidget( "macroServerIfc.createMg: too many words")
-            return 
-            
-        mgName = words[0]
-        #
-        # does the mgName exists already
-        #
-        for dev in self.parent.devices.allMGs:
-            if mgName.upper() == dev[ 'name'].upper():
-                self.logWidget.append( "macroServerIfc.createMg: %s exists already" % mgName)
-                return 
-                
-        lst = HasyUtils.getPoolNames()
-        if lst is None or len( lst) == 0:
-            self.logWidget.append( "macroServerIfc.createMg: no pool")
-            return
-        
-        mgConf = HasyUtils.MgUtils.MgConf( lst[0], mgName, True)
-
-        #
-        # take the first timer
-        #
-        lst = HasyUtils.getTimerAliases()
-        if lst is not None and len( lst) > 0:
-            timerName = lst[0]
-        else:
-            QtGui.QMessageBox.critical(self, 'Error', 
-                                       "macroServerIfc.cb_apply: MG %s cannot be created, there are no timers" % mgName,
-                                       QtGui.QMessageBox.Ok)
-            return 
-                
-        mgConf.addTimer( timerName)
-        mgConf.updateConfiguration()
-
-        hsh = {}
-        hsh[ 'control'] = 'tango'
-        hsh[ 'flagOffline'] = False
-        hsh[ 'name'] = mgName
-        hsh[ 'hostname'] = "%s:10000" % HasyUtils.getHostname()
-        hsh[ 'mgs'] = "timers = %s" % timerName
-        hsh[ 'fullName'] = "%s/none" % hsh[ 'hostname']
-        hsh[ 'module'] = "none"
-        hsh[ 'device'] = "none"
-        hsh[ 'type'] = 'measurement_group'
-        try: 
-            hsh[ 'proxy'] = PyTango.DeviceProxy( mgName)
-        except Exception as e:
-            print( "macroServerIfc.createMg: failed to create proxy to %s" % mgName)
-            print( repr( e))
-            return
-        self.parent.devices.allMGs.append( hsh)
-
-        HasyUtils.setEnv( "ActiveMntGrp", mgName)
-        self.logWidget.append( "macroServerIfc.createMg: ActiveMntGrp to %s: %s" % 
-                               ( mgName, hsh[ 'proxy'].ElementList))
-        self.fillMgComboBox()
-        
-        return 
-    
     def cb_applyMacroServerIfc( self):
-        #
-        # create a new measurement group
-        #
-        mgName = str( self.newMgLine.text())
-        if len( mgName) > 0:
-            self.newMgLine.clear()
-            self.createMg( mgName)
         
         for var in self.varsEnv:
             hsh = self.dct[ var]
