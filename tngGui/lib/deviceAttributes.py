@@ -26,7 +26,7 @@ class deviceAttributes( QtGui.QMainWindow):
         # name, full device name
         #
         alias_l = QtGui.QLabel( self.dev[ 'name'])
-        name_l = QtGui.QLabel( "FullName: %s/%s" % (self.dev[ 'hostname'], self.dev[ 'device']))
+        name_l = QtGui.QLabel( "%s/%s" % (self.dev[ 'hostname'], self.dev[ 'device']))
         try:
             if hasattr( self.dev[ 'proxy'], 'TangoDevice'):
                 starter_l = QtGui.QLabel( "StarterHost: %s" % (HasyUtils.getStarterHostByDevice( self.dev[ 'proxy'].TangoDevice)))
