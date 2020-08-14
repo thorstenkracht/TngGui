@@ -1461,6 +1461,12 @@ class mainMenu( QtGui.QMainWindow):
         layout_grid = QtGui.QGridLayout()
 
         layout_grid.addWidget( QtGui.QLabel( "Alias"), 0, 0)
+
+        temp = HasyUtils.getEnv( 'ActiveMntGrp')
+        if temp is None: 
+            self.logWidget.append( "No ActiveMntGrp")
+        else: 
+            self.logWidget.append( "ActiveMntGrp: %s" % temp)
         count = 1
         for dev in self.devices.allMGs:
             aliasName = utils.QPushButtonTK( dev['name'])

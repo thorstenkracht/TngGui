@@ -591,6 +591,8 @@ class Devices():
         #
         
         self.allCounters = []
+        self.allTangoCounters = []
+        self.allTangoAttrCtrls = []
         if self.allDevices:
             for dev in self.allDevices:
                 if 'sardananame' in dev:

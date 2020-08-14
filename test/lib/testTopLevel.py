@@ -83,6 +83,9 @@ class testTopLevel( unittest.TestCase):
         mainWidget.cb_vfcadcTable()
         mainWidget.logWidget.append( "Table: vfcadc")
         self.waitSomeTime( 1.0)
+        mainWidget.cb_timerTable()
+        mainWidget.logWidget.append( "Table: timers")
+        self.waitSomeTime( 1.0)
         mainWidget.cb_mgTable()
         mainWidget.logWidget.append( "Table: MGs")
         mainWidget.cb_doorTable()
@@ -145,7 +148,7 @@ class testTopLevel( unittest.TestCase):
         mainWidget.logWidget.append( "sample time to 3 secs")
         dev[ 'proxy'].sampleTime = 3.
 
-        w_timer = mainWidget.cb_launchTimer()
+        w_timer = mainWidget.cb_launchTimerExtra()
         mainWidget.logWidget.append( "starting timer")
         dev[ 'proxy'].start()
         while dev[ 'proxy'].state() == PyTango.DevState.MOVING:
@@ -225,3 +228,4 @@ class testTopLevel( unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
