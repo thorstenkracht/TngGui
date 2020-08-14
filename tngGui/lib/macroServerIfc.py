@@ -163,6 +163,7 @@ LogMacroDir: directory where the log will be stored<br>\
             self.activeMntGrpComboBox.currentIndexChanged.connect( self.cb_activeMntGrpChanged)
             hBox.addWidget( self.activeMntGrpComboBox)
             hBox.addStretch()            
+            self.layout_v.addLayout( hBox)
             
         #
         # horizontal line
