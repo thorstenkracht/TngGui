@@ -60,24 +60,32 @@ class MacroServerIfc( QtGui.QMainWindow):
 Use e.g. [\"tst.fio\", \"tst.nxs\"] to specify that two ouput \
 files will be created, a NeXus and a .fio file\
 \
+<p><b>JsonRecorder</b><br>\
+The SardanaMonitor receives json-encoded data. Therefore the JsonRecoder <br>\
+checkbox should be enabled.\
+\
+<p><b>ShowDial</b><br>\
+If False, the DIAL is not displayed. At DESY the DIAL has no meaning.\
+\
+<p><b>ShowCtrlAxis</b><br>\
+If True, the pool device names are displayed together with the <br>\
+aliases when using wa or wm.\
+\
 <p><b>General Hooks</b><br>\
 Hooks are explained in the Spock manual, Scans chapter.<br>\
 They can be enabled or disabled and the source file can <br>\
 be edited and reloaded.<br>\
 It is assumed that the hooks and the on-condition Macro are in <br>\
-$HOME/sardanaMacros/general_features.py<br>\
+$HOME/sardanaMacros/general_features.py<\
 \
 <p><b>GeneralOnStopFunction</b><br>\
  The on-stop function will be invoked, if a scan is terminated<br>\
 by Ctrl-C. It is assumed that the sourcee file is here:<br>\
-$HOME/sardanaMacros/generalFunctions/general_functions.py<br>\
-\
-<p><b>JsonRecorder</b><br>\
-The SardanaMonitor receives json-encoded data. Therefore the JsonRecoder checkbox should be enabled.\
+$HOME/sardanaMacros/generalFunctions/general_functions.py\
 \
 <p><b>Logging</b><br>\
 LogMacro: if True, logging is active<br>\
-LogMacroDir: directory where the log will be stored<br>\
+LogMacroDir: directory where the log will be stored\
 \
 "
                 ))
@@ -423,57 +431,80 @@ LogMacroDir: directory where the log will be stored<br>\
                     break
                 else:
                     self.logWidget.append( "New ActiveMntGrp not on the list, restart widget")
-        
+
+        envDct = HasyUtils.getEnvDct()
+                    
         for var in self.varsEnv:
-            res = HasyUtils.getEnv( var)
-            if type( res) is list:
-                res = ".".join(res)
-            if res is None:
+            try: 
+                res = envDct[ var]
+                if type( res) is list:
+                    res = ".".join(res)
+                if res is None:
+                    self.dct[ var][ "w_value"].setText( "None")
+                else:
+                    self.dct[ var][ "w_value"].setText( str(res))
+            except: 
                 self.dct[ var][ "w_value"].setText( "None")
+
+        try: 
+            hsh = envDct[ "_ViewOptions"]
+            if hsh[ 'ShowDial']:
+                self.w_showDialCheckBox.setChecked( True)
             else:
-                self.dct[ var][ "w_value"].setText( str(res))
-
-        hsh = HasyUtils.getEnv( "_ViewOptions")
-        if hsh[ 'ShowDial']:
-            self.w_showDialCheckBox.setChecked( True)
-        else:
-            self.w_showDialCheckBox.setChecked( False)
-        if hsh[ 'ShowCtrlAxis']:
-            self.w_showCtrlAxisCheckBox.setChecked( True)
-        else:
-            self.w_showCtrlAxisCheckBox.setChecked( False)
-
-        lst = HasyUtils.getEnv( "_GeneralHooks")
-        if lst is None:
+                self.w_showDialCheckBox.setChecked( False)
+            if hsh[ 'ShowCtrlAxis']:
+                self.w_showCtrlAxisCheckBox.setChecked( True)
+            else:
+                self.w_showCtrlAxisCheckBox.setChecked( False)
+        except: 
+            pass
+        
+        try: 
+            lst = envDct[ "_GeneralHooks"]
+            if lst is None:
+                self.w_generalHooksCheckBox.setChecked( False)
+            else:
+                self.w_generalHooksCheckBox.setChecked( True)
+        except: 
             self.w_generalHooksCheckBox.setChecked( False)
-        else:
-            self.w_generalHooksCheckBox.setChecked( True)
 
-        a = HasyUtils.getEnv( "GeneralCondition")
-        if a is None:
+        try: 
+            a = envDct[ "GeneralCondition"]
+            if a is None:
+                self.w_onConditionCheckBox.setChecked( False)
+            else:
+                self.w_onConditionCheckBox.setChecked( True)
+        except: 
             self.w_onConditionCheckBox.setChecked( False)
-        else:
-            self.w_onConditionCheckBox.setChecked( True)
 
-        a = HasyUtils.getEnv( "GeneralOnStopFunction")
-        if a is None:
+        try: 
+            a = envDct[ "GeneralOnStopFunction"]
+            if a is None:
+                self.w_generalStopCheckBox.setChecked( False)
+            else:
+                self.w_generalStopCheckBox.setChecked( True)
+        except: 
             self.w_generalStopCheckBox.setChecked( False)
-        else:
-            self.w_generalStopCheckBox.setChecked( True)
 
-        a = HasyUtils.getEnv( "JsonRecorder")
-        if a is True:
-            self.w_jsonRecorderCheckBox.setChecked( True)
-        else:
+        try: 
+            a = envDct[ "JsonRecorder"]
+            if a is True:
+                self.w_jsonRecorderCheckBox.setChecked( True)
+            else:
+                self.w_jsonRecorderCheckBox.setChecked( False)
+        except:
             self.w_jsonRecorderCheckBox.setChecked( False)
-
-        a = HasyUtils.getEnv( "LogMacro")
-        if a is True:
-            self.w_LogMacroCheckBox.setChecked( True)
-        else:
-            self.w_LogMacroCheckBox.setChecked( False)
-
-
+            
+        try: 
+            a = envDct[ "LogMacro"]
+            if a is True:
+                self.w_LogMacroCheckBox.setChecked( True)
+            else:
+                self.w_LogMacroCheckBox.setChecked( False)
+        except: 
+                self.w_LogMacroCheckBox.setChecked( False)
+        return
+        
     def closeEvent( self, e):
         self.cb_closeMacroServerIfc()
 
