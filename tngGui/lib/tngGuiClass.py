@@ -45,7 +45,6 @@ def launchMoveMotor( dev, devices, app, logWidget = None, parent = None):
     w = moveMotor.moveMotor( dev, devices, logWidget, app, parent)
     return w
 
-
 class mainMenu( QtGui.QMainWindow):
     '''
     the main class of the TngTool application
@@ -1462,14 +1461,15 @@ class mainMenu( QtGui.QMainWindow):
 
         layout_grid.addWidget( QtGui.QLabel( "Alias"), 0, 0)
 
-        temp = HasyUtils.getEnv( 'ActiveMntGrp')
-        if temp is None: 
-            self.logWidget.append( "No ActiveMntGrp")
-        else: 
-            self.logWidget.append( "ActiveMntGrp: %s" % temp)
+        activeMntGrp = HasyUtils.getEnv( 'ActiveMntGrp')
+        self.mgAliases = HasyUtils.getMgAliases()
         count = 1
+        self.MgEntries = []
         for dev in self.devices.allMGs:
             aliasName = utils.QPushButtonTK( dev['name'])
+            if dev[ 'name'] == activeMntGrp: 
+                aliasName.setStyleSheet( "color: blue")
+            self.MgEntries.append( aliasName)
             aliasName.setToolTip( "MB-1: Attributes\nMB-2: Commands\nMB-3: Properties")
             aliasName.mb1.connect( self.make_cb_attributes( dev, self.logWidget))
             aliasName.mb2.connect( self.make_cb_commands( dev, self.logWidget))
@@ -1481,7 +1481,7 @@ class mainMenu( QtGui.QMainWindow):
         self.base.setLayout( layout_grid)
         self.scrollArea.setWidget( self.base)
         self.refreshFunc = self.refreshMGs
-        
+        return 
 
     def fillDoors( self):
 
@@ -1816,8 +1816,72 @@ class mainMenu( QtGui.QMainWindow):
     def refreshMCAs( self):
         pass
 
+    def updateMGs( self): 
+        '''
+        an MG has been deleted or appended
+        '''
+
+        mgAliases = HasyUtils.getMgAliases()
+        if mgAliases is None: 
+            return 
+        #
+        # first check whether devices.allMGs has to be extended
+        #
+        for mg in mgAliases:
+            flag = False
+            #
+            # see which group we already have
+            #
+            for dev in self.devices.allMGs:
+                if mg.lower() == dev[ 'name']:
+                    flag = True
+                    break
+            if flag: 
+                continue
+            dev = {}
+            dev[ 'name'] = mg.lower()
+            dev[ 'device'] = 'None'
+            dev[ 'module'] = 'None'
+            dev[ 'type'] = 'measurement_group'
+            dev[ 'hostname'] = "%s" % os.getenv( "TANGO_HOST")
+            dev[ 'proxy'] = devices.createProxy( dev)
+            if dev[ 'proxy'] is None:
+                print( "tngGuiClass.updateMGs: No proxy to %s, ignoring this device" % dev[ 'name'])
+                continue
+            self.devices.allMGs.append( dev)
+        #
+        # then we check whether MGs have to be deleted 
+        #
+        for dev in self.devices.allMGs:
+            if dev[ 'name'] not in mgAliases:
+                del dev
+
+        self.devices.allMGs = sorted( self.devices.allMGs, key=lambda k: k['name'])
+        return 
+
     def refreshMGs( self):
-        pass
+        
+        mgAliases = HasyUtils.getMgAliases()
+        if len( mgAliases) != len( self.mgAliases): 
+            self.logWidget.append( "refreshMGs: MGs changed, length")
+            self.updateMGs()
+            self.fillMGs()
+            return 
+            
+        for mg in mgAliases: 
+            if mg not in self.mgAliases: 
+                self.logWidget.append( "refreshMGs: MGs changed, members")
+                self.updateMGs()
+                self.fillMGs()
+                return 
+
+        activeMntGrp = HasyUtils.getEnv( 'ActiveMntGrp')
+        for btn in self.MgEntries:
+            if btn.text() == activeMntGrp:
+                btn.setStyleSheet( "color: blue")
+            else: 
+                btn.setStyleSheet( "color: black")
+        return 
 
     def refreshDoors( self):
         pass

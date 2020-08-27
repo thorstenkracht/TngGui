@@ -29,9 +29,12 @@ class deviceAttributes( QtGui.QMainWindow):
         name_l = QtGui.QLabel( "%s/%s" % (self.dev[ 'hostname'], self.dev[ 'device']))
         try:
             if hasattr( self.dev[ 'proxy'], 'TangoDevice'):
-                starter_l = QtGui.QLabel( "StarterHost: %s" % (HasyUtils.getStarterHostByDevice( self.dev[ 'proxy'].TangoDevice)))
+                starter_l = QtGui.QLabel( "StarterHost: %s" % 
+                                          (HasyUtils.getStarterHostByDevice( "%s/%s" % (self.dev[ 'hostname'], 
+                                                                                        self.dev[ 'proxy'].TangoDevice))))
             else: 
-                starter_l = QtGui.QLabel( "StarterHost: %s" % (HasyUtils.getStarterHostByDevice( self.dev[ 'proxy'].name())))
+                starter_l = QtGui.QLabel( "StarterHost: %s" % 
+                                          (HasyUtils.getStarterHostByDevice( "%s/%s" % (self.dev[ 'hostname'], self.dev[ 'proxy'].name()))))
         except Exception as e: 
                 starter_l = QtGui.QLabel( "n.n.")
                 self.logWidget.append( "%s" % repr( e))

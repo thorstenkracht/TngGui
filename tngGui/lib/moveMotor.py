@@ -153,7 +153,7 @@ class moveMotor( QtGui.QMainWindow):
         # update the widgets
         #
         self.w_alias.setText( self.dev[ 'name'])
-        self.w_serverName.setText( HasyUtils.getServerNameByDevice( self.dev[ 'proxy'].name()))
+        self.w_serverName.setText( HasyUtils.getServerNameByDevice( self.dev[ 'proxy'].name(), self.dev[ 'hostname']))
         self.w_motorPosition.setText( utils.getPositionString( self.dev))
 
         try:
