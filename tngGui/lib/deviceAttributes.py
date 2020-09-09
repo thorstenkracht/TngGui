@@ -291,7 +291,9 @@ class deviceAttributes( QtGui.QMainWindow):
         '''
         return the list of attribute info blocks
         '''
-        attrOms = [ 'State', 'Status', 'Position', 'UnitLimitMin', 'UnitLimitMax', 'UnitBacklash', 'UnitCalibration',
+        attrOms = [ 'State', 'Status', 'Position', 'UnitLimitMin', 'UnitLimitMax', 
+                    'UnitLimitMinExpert', 'UnitLimitMaxExpert', 
+                    'UnitBacklash', 'UnitCalibration',
                     'StepPositionController', 'StepPositionInternal',
                     'SlewRate', 'SlewRateMin', 'SlewRateMax', 'BaseRate',
                     'Conversion', 'Acceleration', 

@@ -20,10 +20,21 @@ Examples:
     select only two motors, but all other devices
   TngGui.py exp_mot0
     select 9 motors, but all other devices
-  TngGui.py -t expert
-    select all devices tagged with expert
+  TngGui.py exp_mot01
+    open move widget for one motor
 
   The Python regular expression rules apply.
+
+  TngGui.py -t expert
+    select all devices tagged with expert (and all those 
+    pool devices that have no counterpart in online.xml).
+    Tags have to match exactly
+
+  TngGui.py -t expert,user
+    select all devices tagged with expert or user (and all 
+    those pool devices that have no counterpart in online.xml).
+    Tags have to match exactly
+
     ''')
     #
     # notice that 'pattern' is a positional argument
@@ -32,7 +43,7 @@ Examples:
     #parser.add_argument( '-c', dest='counterName', nargs='?', help='signal counter')
     #parser.add_argument( '-t', dest='timerName', nargs='?', help='signal timer')
     parser.add_argument( '--mca', dest='mca', action="store_true", help='start the MCA widget')
-    parser.add_argument( '-t', dest='tags', nargs='?', help='tags matching online.xml tags')
+    parser.add_argument( '-t', dest='tags', nargs='+', help='tags matching online.xml tags')
     #parser.add_argument( '-l', dest="list", action="store_true", help='list server and devices')
     #parser.add_argument( '-p', dest="pysp", action="store_true", help='use PySpectra for graphics')
     parser.add_argument( '-s', dest="spectra", action="store_true", help='use Spectra for graphics')

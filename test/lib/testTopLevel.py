@@ -11,6 +11,7 @@ python ./test/lib/testTopLevel.py testTopLevel.testTimerWidget
 python ./test/lib/testTopLevel.py testTopLevel.testStopMove
 python ./test/lib/testTopLevel.py testTopLevel.testLogWidget
 python ./test/lib/testTopLevel.py testTopLevel.testDevices
+python ./test/lib/testTopLevel.py testTopLevel.testTags
 '''
 
 import sys, time, os
@@ -209,12 +210,12 @@ class testTopLevel( unittest.TestCase):
         devs = devices.Devices( args = args, xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
         self.assertEqual( len( devs.allMotors), 19)
 
-        dct = { 'allIRegs': 16, 'allMCAs': 4, 
+        dct = { 'allIRegs': 32, 'allMCAs': 8, 
                 # 'allMGs': 9, 
                 'allMSs': 1, 'allDoors': 3, 'allPools': 1, 
                 'allModuleTangos': 1, 
-                'allMotors': 19, 'allORegs': 16, 'allPiLCModules': 0, 'allTangoAttrCtrls': 12, 
-                'allTangoCounters': 4, 'allTimers': 4, 'allVfcAdcs': 8}
+                'allMotors': 19, 'allORegs': 32, 'allPiLCModules': 0, 'allTangoAttrCtrls': 12, 
+                'allTangoCounters': 8, 'allTimers': 8, 'allVfcAdcs': 16}
 
         for mg in devs.allMGs: 
             print( "testToplevel.testDevices: %s" % repr( mg[ 'name']))
@@ -224,6 +225,42 @@ class testTopLevel( unittest.TestCase):
             exec com
             print( "testToplevel.testDevices: len( %s): %d %d" % (k, length, dct[ k]))
             self.assertEqual( length, dct[ k])
+        return 
+
+    def testTags( self): 
+        '''
+        /home/kracht/Misc/tngGui/test/online.xml
+        '''
+        args = dummy()
+        args.tags = [ 'testtag1', 'testtag2']
+        devs = devices.Devices( args = args, xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
+        self.assertEqual( len( devs.allMotors), 14) # 11 + 3
+        self.assertEqual( len( devs.allAdcs), 2) 
+        self.assertEqual( len( devs.allTangoAttrCtrls), 1) 
+        self.assertEqual( len( devs.allTangoCounters), 2) 
+        self.assertEqual( len( devs.allCounters), 2) 
+        self.assertEqual( len( devs.allMGs), 3) 
+        self.assertEqual( len( devs.allDoors), 3) 
+        self.assertEqual( len( devs.allMSs), 1) 
+        self.assertEqual( len( devs.allPools), 1) 
+        self.assertEqual( len( devs.allNXSConfigServer), 1) 
+
+        args.tags = [ 'testtag1']
+        devs = devices.Devices( args = args, xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
+        self.assertEqual( len( devs.allMotors), 13) 
+        self.assertEqual( len( devs.allTangoAttrCtrls), 1)
+        self.assertEqual( len( devs.allIRegs), 2) 
+        self.assertEqual( len( devs.allORegs), 2) 
+        self.assertEqual( len( devs.allAdcs), 2) 
+        self.assertEqual( len( devs.allCounters), 2) 
+
+        args.tags = [ 'testtag2']
+        devs = devices.Devices( args = args, xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
+        self.assertEqual( len( devs.allMotors), 12)
+        self.assertEqual( len( devs.allTimers), 2) 
+        self.assertEqual( len( devs.allMCAs), 2) 
+        #devs.showAllDevices()
+
         return 
 
 if __name__ == "__main__":

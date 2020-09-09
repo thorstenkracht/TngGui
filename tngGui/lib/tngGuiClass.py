@@ -20,22 +20,6 @@ import PySpectra.pySpectraGuiClass
 import PyTango
 
 
-def matchTags( tags, cliTags): 
-    '''
-    tags <tags>user</tags> 
-    cliTags -t user,expert
-    '''
-    lstTags = tags.split( ',')
-    lstCliTags = cliTags.split( ',')
-    
-    for tag in lstTags: 
-        for cliTag in lstCliTags: 
-            if tag.upper() == cliTag.upper():
-                #print( "+++matchTags %s %s -> True " % (repr( tags), repr( cliTags)))
-                return True
-    #print( "+++matchTags %s %s -> False " % (repr( tags), repr( cliTags)))
-    return False
-
 def launchMoveMotor( dev, devices, app, logWidget = None, parent = None): 
     '''
     called from 
@@ -51,10 +35,8 @@ class mainMenu( QtGui.QMainWindow):
     '''
     def __init__( self, args = None, app = None, devs = None, parent = None):
         super( mainMenu, self).__init__( parent)
-        
 
         self.setWindowTitle( "TngGui")
-
 
         if PySpectra.InfoBlock.monitorGui is None:
             PySpectra.InfoBlock.setMonitorGui( self)
@@ -272,6 +254,13 @@ class mainMenu( QtGui.QMainWindow):
         self.macroServerAction.triggered.connect( self.cb_msIfc)
         self.miscMenu.addAction( self.macroServerAction)
         #
+        # show all devices
+        #
+        self.showAllDevicesAction = QtGui.QAction('Show all devices', self)        
+        self.showAllDevicesAction.setStatusTip('Show all devices')
+        self.showAllDevicesAction.triggered.connect( self.cb_showAllDevices)
+        self.miscMenu.addAction( self.showAllDevicesAction)
+        #
         # Table
         #
         self.tableMenu = self.menuBar.addMenu('Table')
@@ -484,6 +473,10 @@ class mainMenu( QtGui.QMainWindow):
         
     def cb_nxsConfigServerTable( self):
         self.fillNXSConfigServer()
+        
+    def cb_showAllDevices( self):
+        self.devices.showAllDevices()
+        return 
     #
     # the closeEvent is called when the window is closed by 
     # clicking the X at the right-upper corner of the frame

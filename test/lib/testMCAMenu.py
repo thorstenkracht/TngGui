@@ -48,6 +48,9 @@ class testMCAMenu( unittest.TestCase):
     def testMCAMenu( self):
         print( "testMCAMenu.testMCAMenu, start")
 
+        PySpectra.cls()
+        PySpectra.delete()
+
         mg = HasyUtils.MgUtils.MgConf( None, "mg_tnggui", True)
         mg.addTimer( "eh_t01")
         mg.addMCA( "eh_mca01")
@@ -63,6 +66,12 @@ class testMCAMenu( unittest.TestCase):
         self.waitSomeTime( 3.0)
 
         lst = PySpectra.getGqeList()
+        #
+        # now and then len(lst) is not == 1
+        #
+        if len( lst) != 1: 
+            for elm in lst: 
+                print( "+++testMCAMenu: %s" % elm.name)
         self.assertEqual( len( lst), 1)
         self.assertEqual( lst[0].name, "eh_mca01")
         testMCAMenu.mcaWidgetClass.cb_clearMeasurement()
