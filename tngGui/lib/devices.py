@@ -9,7 +9,8 @@ import PyTango
 #
 # list those modules that have the attribite widget prepared
 #
-cameraNames = ['eigerdectris', 'lambda','pilatus100k', 'pilatus300k', 'pilatus1m', 'pilatus2m', 'pilatus6m']
+cameraNames = ['eigerdectris', 
+               'lambda','pilatus100k', 'pilatus300k', 'pilatus1m', 'pilatus2m', 'pilatus6m']
 
 PiLCModuleNames = ['pilc_module']
 

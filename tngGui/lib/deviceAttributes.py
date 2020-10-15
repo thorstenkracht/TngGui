@@ -47,6 +47,12 @@ class deviceAttributes( QtGui.QMainWindow):
         self.layout_grid = QtGui.QGridLayout()
         self.layout_v.addLayout( self.layout_grid)
 
+        #
+        # devices that throw an exception, if read, enter this list.
+        # this way time-out (e.g.) happen only once
+        #
+        self.attributesFailed = []
+
         self.prepareAttributes()
         
         #
@@ -343,6 +349,7 @@ class deviceAttributes( QtGui.QMainWindow):
         attrInfoListAll = self.dev[ 'proxy'].attribute_list_query()
         attrInfoList = []
         for attrInfo in attrInfoListAll: 
+            #print( "+++deviceAttribute name %s" % attrInfo.name)
             if attrInfo.name == 'State': 
                 ste = attrInfo
                 continue
@@ -568,6 +575,12 @@ class deviceAttributes( QtGui.QMainWindow):
 
             if attrInfo.name.lower() == "writeread":
                 continue
+
+            #
+            # attributes that gave an errror are read only once
+            #
+            if attrInfo.name in self.attributesFailed: 
+                continue
                 
             w_value = self.attrDct[ attrInfo.name][ "w_value"]
             if w_value is None:
@@ -588,7 +601,10 @@ class deviceAttributes( QtGui.QMainWindow):
             try: 
                 a = self.dev[ 'proxy'].read_attribute( attrInfo.name)
             except Exception as e:
-                w_value.setText( "Failed")
+                w_value.setText( "Failed & Ignored")
+                self.logWidget.append( "refreshAttr: %s read failed" % attrInfo.name)
+                self.logWidget.append( "refreshAttr: %s" % repr( e))
+                self.attributesFailed.append( attrInfo.name)
                 continue
             #
             # Boolean
