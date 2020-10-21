@@ -19,17 +19,31 @@ modulesRoiCounters = ['mca8715roi',
                       'amptekroi',
                       'mythenroi']
 
-def matchTags( tags, lstCliTags): 
+def matchTags( tags, cliTags): 
     '''
     tags <tags>user</tags> 
     cliTags -t user,expert
     '''
     lstTags = tags.split( ',')
-    
+
+    if cliTags:
+        if type( cliTags) is list: 
+            if len( cliTags) == 1: 
+                lstCliTags = cliTags[0].split( ',')
+            else: 
+                lstCliTags = cliTags
+        else: 
+            lstCliTags = cliTags.split( ',')
+        lstCliTags = [ elm.strip() for elm in lstCliTags]
+    else:
+        lstCliTags = None
+
     for tag in lstTags: 
         for cliTag in lstCliTags: 
             if tag.upper() == cliTag.upper():
+                print( "devices.matchTags: tags %s vs. cliTags %s, return True " % (repr( tags), repr( lstCliTags)))
                 return True
+    print( "devices.matchTags: tags %s vs. cliTags %s, return False " % (repr( tags), repr( lstCliTags)))
     return False
 
 class Devices(): 

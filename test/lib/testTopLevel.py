@@ -232,33 +232,32 @@ class testTopLevel( unittest.TestCase):
         /home/kracht/Misc/tngGui/test/online.xml
         '''
         args = dummy()
-        args.tags = [ 'testtag1', 'testtag2']
-        devs = devices.Devices( args = args, xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
-        self.assertEqual( len( devs.allMotors), 54)
-        self.assertEqual( len( devs.allAdcs), 2) 
-        self.assertEqual( len( devs.allTangoAttrCtrls), 1) 
-        self.assertEqual( len( devs.allTangoCounters), 2) 
-        self.assertEqual( len( devs.allCounters), 2) 
-        self.assertEqual( len( devs.allMGs), 4) # 2 + 2 
+        args.tags = [ 'user', 'expert']
+        devs = devices.Devices( args = args)
+        self.assertEqual( len( devs.allMotors), 57)
+        self.assertEqual( len( devs.allAdcs), 0) 
+        self.assertEqual( len( devs.allTangoAttrCtrls), 2) 
+        self.assertEqual( len( devs.allTangoCounters), 7) 
+        self.assertEqual( len( devs.allCounters), 4) 
+        self.assertEqual( len( devs.allMGs), 3) 
         self.assertEqual( len( devs.allDoors), 3) 
         self.assertEqual( len( devs.allMSs), 1) 
         self.assertEqual( len( devs.allPools), 1) 
         self.assertEqual( len( devs.allNXSConfigServer), 1) 
 
-        args.tags = [ 'testtag1']
-        devs = devices.Devices( args = args, xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
-        self.assertEqual( len( devs.allMotors), 53) 
-        self.assertEqual( len( devs.allTangoAttrCtrls), 1)
-        self.assertEqual( len( devs.allIRegs), 2) 
-        self.assertEqual( len( devs.allORegs), 2) 
-        self.assertEqual( len( devs.allAdcs), 2) 
+        args.tags = [ 'user']
+        devs = devices.Devices( args = args)
+        self.assertEqual( len( devs.allMotors), 57) 
+        self.assertEqual( len( devs.allIRegs), 0) 
+        self.assertEqual( len( devs.allORegs), 0) 
+        self.assertEqual( len( devs.allAdcs), 0) 
         self.assertEqual( len( devs.allCounters), 2) 
 
-        args.tags = [ 'testtag2']
-        devs = devices.Devices( args = args, xmlFile = "/home/kracht/Misc/tngGui/test/online.xml")
-        self.assertEqual( len( devs.allMotors), 52)
-        self.assertEqual( len( devs.allTimers), 2) 
-        self.assertEqual( len( devs.allMCAs), 2) 
+        args.tags = [ 'expert']
+        devs = devices.Devices( args = args)
+        self.assertEqual( len( devs.allMotors), 56)
+        self.assertEqual( len( devs.allTimers), 0) 
+        self.assertEqual( len( devs.allMCAs), 0) 
         #devs.showAllDevices()
 
         return 
