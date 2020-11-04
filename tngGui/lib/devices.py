@@ -19,12 +19,12 @@ modulesRoiCounters = ['mca8715roi',
                       'amptekroi',
                       'mythenroi']
 
-def matchTags( tags, cliTags): 
+def matchTags( dev, cliTags): 
     '''
     tags <tags>user</tags> 
     cliTags -t user,expert
     '''
-    lstTags = tags.split( ',')
+    lstTags = dev[ 'tags'].split( ',')
 
     if cliTags:
         if type( cliTags) is list: 
@@ -41,9 +41,9 @@ def matchTags( tags, cliTags):
     for tag in lstTags: 
         for cliTag in lstCliTags: 
             if tag.upper() == cliTag.upper():
-                print( "devices.matchTags: tags %s vs. cliTags %s, return True " % (repr( tags), repr( lstCliTags)))
+                print( "devices.matchTags: %s tags %s vs. cliTags %s, return True " % ( dev[ 'name'], repr( dev[ 'tags']), repr( lstCliTags)))
                 return True
-    print( "devices.matchTags: tags %s vs. cliTags %s, return False " % (repr( tags), repr( lstCliTags)))
+    print( "devices.matchTags: %s tags %s vs. cliTags %s, return False " % ( dev[ 'name'],repr( dev[ 'tags']), repr( lstCliTags)))
     return False
 
 class Devices(): 
@@ -287,7 +287,7 @@ class Devices():
         if self.args is not None and self.args.tags is not None: 
             if 'tags' not in dev: 
                 return True
-            if not matchTags( dev[ 'tags'], self.args.tags):
+            if not matchTags( dev, self.args.tags):
                 return True
         return False
 
@@ -466,7 +466,7 @@ class Devices():
                 if self.args is not None and self.args.tags is not None: 
                     if 'tags' not in dev: 
                         continue
-                    if not matchTags( dev[ 'tags'], self.args.tags):
+                    if not matchTags( dev, self.args.tags):
                         continue
 
                 if (dev['type'].lower() == 'input_register'):
@@ -523,7 +523,7 @@ class Devices():
                 if self.args is not None and self.args.tags is not None: 
                     if 'tags' not in dev: 
                         continue
-                    if not matchTags( dev[ 'tags'], self.args.tags):
+                    if not matchTags( dev, self.args.tags):
                         continue
 
                 if (dev['module'].lower() == 'tip830' or \
@@ -590,7 +590,7 @@ class Devices():
             if self.args is not None and self.args.tags is not None: 
                 if 'tags' not in dev: 
                     continue
-                if not matchTags( dev[ 'tags'], self.args.tags):
+                if not matchTags( dev, self.args.tags):
                     continue
 
             if (dev['module'].lower() == 'mca_8701'):
@@ -631,7 +631,7 @@ class Devices():
             if self.args is not None and self.args.tags is not None: 
                 if 'tags' not in dev: 
                     continue
-                if not matchTags( dev[ 'tags'], self.args.tags):
+                if not matchTags( dev, self.args.tags):
                     continue
 
             if dev['module'].lower() in cameraNames: 
@@ -658,7 +658,7 @@ class Devices():
             if self.args is not None and self.args.tags is not None: 
                 if 'tags' not in dev: 
                     continue
-                if not matchTags( dev[ 'tags'], self.args.tags):
+                if not matchTags( dev, self.args.tags):
                     continue
 
             if dev['module'].lower() in PiLCModuleNames: 
@@ -688,7 +688,7 @@ class Devices():
             if self.args is not None and self.args.tags is not None: 
                 if 'tags' not in dev: 
                     continue
-                if not matchTags( dev[ 'tags'], self.args.tags):
+                if not matchTags( dev, self.args.tags):
                     continue
 
             if dev['module'].lower() == 'module_tango':
@@ -852,7 +852,7 @@ class Devices():
                 if self.args is not None and self.args.tags is not None: 
                     if 'tags' not in dev: 
                         continue
-                    if not matchTags( dev[ 'tags'], self.args.tags):
+                    if not matchTags( dev, self.args.tags):
                         continue
 
                 if (dev['module'].lower() == 'tangoattributectctrl'):
@@ -916,7 +916,7 @@ class Devices():
                 if self.args is not None and self.args.tags is not None: 
                     if 'tags' not in dev: 
                         continue
-                    if not matchTags( dev[ 'tags'], self.args.tags):
+                    if not matchTags( dev, self.args.tags):
                         continue
 
                 if (dev['type'].lower() == 'timer'):
