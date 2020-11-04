@@ -2,6 +2,7 @@
 '''
 the class Devices reads online.xml and creates lists for the various
 device types. For motors and MGs it also looks into the Pool. 
+
 '''
 import json, os, time
 import HasyUtils
