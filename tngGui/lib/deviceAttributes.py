@@ -302,7 +302,7 @@ class deviceAttributes( QtGui.QMainWindow):
                     'UnitBacklash', 'UnitCalibration',
                     'StepPositionController', 'StepPositionInternal',
                     'SlewRate', 'SlewRateMin', 'SlewRateMax', 'BaseRate',
-                    'Conversion', 'Acceleration', 
+                    'Conversion', 'Acceleration',
                     #'StepBacklash', 'StepLimitMin', 'StepLimitMax', 
                     'SettleTime',
                     'CwLimit', 'CcwLimit', 'FlagProtected', 'FlagCheckZMXActivated', 'WriteRead']
