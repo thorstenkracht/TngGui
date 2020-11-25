@@ -7,6 +7,7 @@ import tngGui.lib.devices as devices
 #from taurus.external.qt import QtGui, QtCore 
 from PyQt4 import QtCore, QtGui
 import tngGui.lib.mcaWidget as mcaWidget
+import HasyUtils 
         
 def parseCLI():
     parser = argparse.ArgumentParser( 
@@ -47,6 +48,7 @@ Examples:
     #parser.add_argument( '-l', dest="list", action="store_true", help='list server and devices')
     #parser.add_argument( '-p', dest="pysp", action="store_true", help='use PySpectra for graphics')
     parser.add_argument( '-s', dest="spectra", action="store_true", help='use Spectra for graphics')
+    parser.add_argument( '--fs', dest="fontSize", action="store", default=None, help='font size')
     args = parser.parse_args()
 
     # 
@@ -57,6 +59,10 @@ Examples:
     return args
 
 def main():
+
+    if not HasyUtils.checkDistroVsPythonVersion( __file__): 
+        print( "TngGui.main: %s does not match distro" % __file__)
+        exit( 255)
 
     args = parseCLI()
 
@@ -89,6 +95,12 @@ def main():
         QtGui.QApplication.setStyle( 'Cleanlooks')
 
     app = QtGui.QApplication(sys.argv)
+
+
+    if args.fontSize is not None:
+        font = QtGui.QFont( 'Sans Serif')
+        font.setPixelSize( int( args.fontSize))
+        app.setFont( font)
 
     devs = devices.Devices( args)
 

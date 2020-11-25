@@ -57,8 +57,8 @@ class MacroServerIfc( QtGui.QMainWindow):
         w = helpBox.HelpBox(self, self.tr("HelpWidget"), self.tr(
             "\
 <p><b>ScanFile</b><br>\
-Use e.g. [\"tst.fio\", \"tst.nxs\"] to specify that two ouput \
-files will be created, a NeXus and a .fio file\
+Use e.g. tst.fio to create .fio files or e.g. [\"tst.fio\", \"tst.nxs\"] \
+to to create .fio and .nxs files.\
 \
 <p><b>JsonRecorder</b><br>\
 The SardanaMonitor receives json-encoded data. Therefore the JsonRecoder <br>\
@@ -202,6 +202,10 @@ LogMacroDir: directory where the log will be stored\
             hBox.addWidget( w_line)
             self.dct[ var] = { "w_value": w_value, "w_line": w_line}
             self.layout_v.addLayout( hBox)
+            if var == "ScanFile": 
+                w.setToolTip( " Use tst.fio or [\"tst.fio\", \"tst.nxs\"] to specify 1 or 2 output files.")
+                w_value.setToolTip( " Use tst.fio or [\"tst.fio\", \"tst.nxs\"] to specify 1 or 2 output files.")
+                w_line.setToolTip( " Use tst.fio or [\"tst.fio\", \"tst.nxs\"] to specify 1 or 2 output files.")
 
         #
         # horizontal line
@@ -438,7 +442,7 @@ LogMacroDir: directory where the log will be stored\
             try: 
                 res = envDct[ var]
                 if type( res) is list:
-                    res = ".".join(res)
+                    res = repr( res)
                 if res is None:
                     self.dct[ var][ "w_value"].setText( "None")
                 else:
@@ -615,15 +619,15 @@ LogMacroDir: directory where the log will be stored\
         HasyUtils.setEnv( "_ViewOptions", hsh)
         
     def cb_applyMacroServerIfc( self):
-        
         for var in self.varsEnv:
             hsh = self.dct[ var]
-            temp = str(hsh[ "w_line"].text())
-            if len( temp) > 0:
-                self.logWidget.append( "setting %s to %s" % (var, temp))
-                HasyUtils.setEnv( var, temp)
-                hsh[ 'w_value'].setText( temp)
+            inp = str(hsh[ "w_line"].text())
+            if len( inp) > 0:
+                self.logWidget.append( "setting %s to %s %s" % (var, repr(inp), type( inp)))
+                HasyUtils.setEnv( var, inp)
+                hsh[ 'w_value'].setText( repr( HasyUtils.getEnv( var)))
                 hsh[ "w_line"].clear()
+        return 
 
     def cb_abortMacro( self): 
         try:
