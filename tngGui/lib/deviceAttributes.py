@@ -75,6 +75,10 @@ class deviceAttributes( QtGui.QMainWindow):
         self.blackBoxAction = QtGui.QAction( 'BlackBox', self)        
         self.blackBoxAction.triggered.connect( self.cb_blackBox)
         self.miscMenu.addAction( self.blackBoxAction)
+
+        self.unIgnoreAttrAction = QtGui.QAction( 'Un-ignore attributes', self)        
+        self.unIgnoreAttrAction.triggered.connect( self.cb_unIgnoreAttrs)
+        self.miscMenu.addAction( self.unIgnoreAttrAction)
         
         if self.dev[ 'module'].lower() == "oms58":
             self.saveAttrAction = QtGui.QAction( 'Save Attrs', self)        
@@ -806,6 +810,10 @@ class deviceAttributes( QtGui.QMainWindow):
         for line in lst:
             if line.find('Empty') == -1:
                 self.logWidget.append( line)
+        
+    def cb_unIgnoreAttrs( self):
+        self.attributesFailed = []
+        return 
 
     def cb_saveAttr( self):
         res = HasyUtils.saveAttrsAsPython( alias = self.dev[ 'name'], module = self.dev[ 'module'])
